@@ -1,0 +1,143 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ================================================
+   基層運動訓練系統 - Vuexy Design System Tokens (Forced Update)
+   ================================================ */
+
+/* Container 設定 */
+@utility container {
+    margin-inline: auto;
+    padding-inline: 1rem;
+    max-width: 90rem;
+}
+
+@theme {
+    /* ========== 配色系統 ========== */
+    --color-primary: #7367F0;
+    --color-primary-foreground: #FFFFFF;
+    --color-primary-hover: #5E50EE;
+
+    --color-background: #F8F7FA;
+    --color-foreground: #4B465C;
+
+    --color-card: #FFFFFF;
+    --color-card-foreground: #4B465C;
+
+    --color-sidebar: #FFFFFF;
+    --color-sidebar-foreground: #4B465C;
+    --color-sidebar-active-bg: #7367F0;
+    --color-sidebar-active-fg: #FFFFFF;
+
+    --color-success: #28C76F;
+    --color-warning: #FF9F43;
+    --color-danger: #EA5455;
+    --color-info: #00CFE8;
+
+    --color-muted: #F1F1F2;
+    --color-muted-foreground: #A8AAAE;
+
+    --color-border: #DBDADE;
+    --color-input: #DBDADE;
+    --color-ring: #7367F0;
+
+    /* 風險等級 */
+    --color-risk-green: #28C76F;
+    --color-risk-yellow: #FF9F43;
+    --color-risk-red: #EA5455;
+    --color-risk-black: #4B4B4B;
+
+    /* 圓角 */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+
+    /* 字型 */
+    --font-sans: 'Public Sans', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+
+    /* 陰影 */
+    --shadow-card: 0 4px 24px 0 rgba(34, 41, 47, 0.1);
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-default: 0 4px 24px 0 rgba(34, 41, 47, 0.1);
+}
+
+/* Base Styles */
+body {
+    font-family: var(--font-sans);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+}
+
+/* Slim Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(168, 170, 174, 0.5);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(168, 170, 174, 0.8);
+}
+
+/* Compatibility Variables */
+@theme inline {
+    --radius: 0.375rem;
+    --color-primary: var(--color-primary);
+    --color-background: var(--color-background);
+}
+
+/* Explicit Variables for Legacy/Shadcn */
+:root {
+    --primary: #7367F0;
+    --primary-foreground: #FFFFFF;
+    --background: #F8F7FA;
+    --foreground: #4B465C;
+    --card: #FFFFFF;
+    --card-foreground: #4B465C;
+    --muted: #F1F1F2;
+    --muted-foreground: #A8AAAE;
+    --border: #DBDADE;
+    --input: #DBDADE;
+    --ring: #7367F0;
+    --radius: 0.375rem;
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    .card {
+        @apply border-none shadow-card;
+    }
+}
+
+/* Force Primary Button Colors (Fix Tailwind v4 Color Mapping Issue) */
+@layer components {
+    .bg-primary {
+        background-color: #7367F0 !important;
+    }
+
+    .text-primary {
+        color: #7367F0 !important;
+    }
+
+    .text-primary-foreground {
+        color: #FFFFFF !important;
+    }
+
+    .hover\:bg-primary\/90:hover {
+        background-color: rgba(115, 103, 240, 0.9) !important;
+    }
+}

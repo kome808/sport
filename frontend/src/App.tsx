@@ -1,0 +1,97 @@
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// 頁面元件
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import TeamSetupPage from './pages/team/TeamSetupPage';
+import DashboardPage from './pages/dashboard/DashboardPage';
+import PlayersPage from './pages/dashboard/PlayersPage';
+import PlayerDetailPage from './pages/dashboard/PlayerDetailPage';
+import NotificationsPage from './pages/dashboard/NotificationsPage';
+import PlayerLoginPage from './pages/player/PlayerLoginPage';
+import PlayerPortalPage from './pages/player/PlayerPortalPage';
+
+// Layouts
+import DashboardLayout from './layouts/DashboardLayout';
+
+// 建立 React Query Client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 分鐘
+      retry: 1,
+    },
+  },
+});
+
+// 路由設定
+const router = createBrowserRouter([
+  // 公開頁面
+  {
+    path: '/',
+    element: <LandingPage />,
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/register',
+    element: <RegisterPage />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: '/team/setup',
+    element: <TeamSetupPage />,
+  },
+
+  // 教練端 - 儀表板
+  {
+    path: '/:teamSlug',
+    element: <DashboardLayout />,
+    children: [
+      {
+        index: true,
+        element: <DashboardPage />,
+      },
+      {
+        path: 'players',
+        element: <PlayersPage />,
+      },
+      {
+        path: 'player/:playerId',
+        element: <PlayerDetailPage />,
+      },
+      {
+        path: 'notifications',
+        element: <NotificationsPage />,
+      },
+    ],
+  },
+
+  // 球員端
+  {
+    path: '/:teamSlug/p/:playerId/login',
+    element: <PlayerLoginPage />,
+  },
+  {
+    path: '/:teamSlug/p/:playerId',
+    element: <PlayerPortalPage />,
+  },
+]);
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
+}
+
+export default App;
