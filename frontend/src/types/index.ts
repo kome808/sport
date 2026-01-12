@@ -20,6 +20,7 @@ export interface Player {
     weight_kg?: number;
     avatar_url?: string;
     password_hash?: string;
+    short_code: string;  // 3 碼短代碼，用於簡化 URL
     is_active: boolean;
     created_at: string;
     updated_at: string;

@@ -284,7 +284,8 @@ export default function PlayersPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem onClick={() => {
-                                                navigator.clipboard.writeText(`${window.location.origin}/player/login`);
+                                                const code = player.short_code || player.id;
+                                                navigator.clipboard.writeText(`${window.location.origin}/${teamSlug}/p/${code}/login`);
                                                 // TODO: Toast
                                             }}>
                                                 <Copy className="mr-2 h-4 w-4" />

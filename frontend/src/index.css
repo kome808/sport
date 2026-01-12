@@ -177,6 +177,14 @@ body {
   --input: #DBDADE;
   --ring: #7367F0;
   --radius: 0.375rem;
+
+  /* Popover 背景色 (修正透明選單問題) */
+  --popover: #FFFFFF;
+  --popover-foreground: #4B465C;
+
+  /* Accent 色 (選單項目 hover) */
+  --accent: #F1F1F2;
+  --accent-foreground: #4B465C;
 }
 
 /* Layer Base Overrides for Shadcn Components */

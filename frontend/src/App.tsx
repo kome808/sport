@@ -9,10 +9,9 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import TeamSetupPage from './pages/team/TeamSetupPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import PlayersPage from './pages/dashboard/PlayersPage';
-import PlayerDetailPage from './pages/dashboard/PlayerDetailPage';
 import NotificationsPage from './pages/dashboard/NotificationsPage';
 import PlayerLoginPage from './pages/player/PlayerLoginPage';
-import PlayerPortalPage from './pages/player/PlayerPortalPage';
+import PlayerRecordPage from './pages/shared/PlayerRecordPage';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
@@ -66,7 +65,7 @@ const router = createBrowserRouter([
       },
       {
         path: 'player/:playerId',
-        element: <PlayerDetailPage />,
+        element: <PlayerRecordPage mode="coach" />,
       },
       {
         path: 'notifications',
@@ -82,7 +81,7 @@ const router = createBrowserRouter([
   },
   {
     path: '/:teamSlug/p/:playerId',
-    element: <PlayerPortalPage />,
+    element: <PlayerRecordPage mode="player" />,
   },
 ]);
 
