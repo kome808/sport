@@ -20,12 +20,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import NotificationBell from '@/components/dashboard/NotificationBell';
 
 // 側邊欄選單項目
 const menuItems = [
@@ -44,6 +40,11 @@ const menuItems = [
         icon: Bell,
         path: '/notifications',
         badge: 3, // TODO: 從 API 取得未讀數量
+    },
+    {
+        title: '球隊設定',
+        icon: Settings,
+        path: '/settings',
     },
 ];
 
@@ -184,17 +185,7 @@ export default function DashboardLayout() {
 
                         {/* 右側工具列 */}
                         <div className="flex items-center gap-2">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="relative">
-                                        <Bell className="h-5 w-5" />
-                                        <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
-                                            3
-                                        </span>
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>通知</TooltipContent>
-                            </Tooltip>
+                            <NotificationBell />
 
                             <Separator orientation="vertical" className="h-6" />
 

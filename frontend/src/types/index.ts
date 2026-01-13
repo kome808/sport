@@ -35,6 +35,8 @@ export interface Team {
     logo_url?: string;
     sport_type: string;
     settings?: Record<string, unknown>;
+    invitation_code?: string;
+    is_invitation_enabled?: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -103,11 +105,12 @@ export interface MedicalRecord {
 // 通知
 export interface Notification {
     id: string;
+    user_id: string;
     team_id: string;
-    player_id?: string;
-    type: 'risk_alert' | 'pain_report' | 'medical_update';
     title: string;
     message: string;
+    type: 'info' | 'warning' | 'danger';
+    link?: string;
     is_read: boolean;
     created_at: string;
 }

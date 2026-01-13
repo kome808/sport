@@ -390,3 +390,29 @@ export function useDeletePlayer() {
         },
     });
 }
+
+// ================================================
+// 更新球隊邀請設定
+// ================================================
+
+export function useUpdateTeamInvitation() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ teamId, code, enabled }: { teamId: string; code: string | null; enabled: boolean }) => {
+            const { error } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('teams')
+                .update({
+                    invitation_code: code,
+                    is_invitation_enabled: enabled,
+                })
+                .eq('id', teamId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: teamKeys.all });
+        },
+    });
+}

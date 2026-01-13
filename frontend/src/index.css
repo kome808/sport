@@ -161,6 +161,10 @@ body {
   --color-input: var(--color-input);
   --color-ring: var(--color-ring);
   --font-sans: var(--font-sans);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
 }
 
 /* Explicit CSS Variables for Shadcn components that might use var(--primary) directly */

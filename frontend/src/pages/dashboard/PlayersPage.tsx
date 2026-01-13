@@ -105,8 +105,7 @@ export default function PlayersPage() {
                 await addPlayerMutation.mutateAsync({
                     team_id: team.id,
                     ...data,
-                    // 預設密碼 (實際應用應更安全處理)
-                    password_hash: '$2a$10$abcdefghijklmnopqrstuv', // placeholder hash
+                    // 不再提供預設密碼，允許球員後續自行認領並設定
                 });
             }
             setIsAddDialogOpen(false);
@@ -259,7 +258,7 @@ export default function PlayersPage() {
                             <CardContent className="p-4">
                                 <div className="flex items-start justify-between">
                                     <Link
-                                        to={`/${teamSlug}/player/${player.id}`}
+                                        to={`/${teamSlug}/player/${player.short_code || player.id}`}
                                         className="flex items-center gap-3 flex-1 min-w-0"
                                     >
                                         <div

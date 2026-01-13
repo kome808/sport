@@ -3,9 +3,9 @@
  * 教練端與球員端共用，透過 mode 控制顯示內容
  */
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, User, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, Loader2, Settings, LogOut } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import DailyReportForm from '@/components/player/DailyReportForm';
 import DailyRecordHistory from '@/components/records/DailyRecordHistory';
 import { usePlayer, usePlayerSession } from '@/hooks/usePlayer';
 import { useTeam } from '@/hooks/useTeam';
+import { ProfileEditDialog } from '@/components/player/ProfileEditDialog';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PainReportForm from '@/components/player/PainReportForm';
@@ -25,6 +26,7 @@ interface PlayerRecordPageProps {
 export default function PlayerRecordPage({ mode }: PlayerRecordPageProps) {
     const { teamSlug, playerId } = useParams<{ teamSlug: string; playerId: string }>();
     const navigate = useNavigate();
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     // 取得球隊資料
     const { data: team } = useTeam(teamSlug || '');
@@ -36,15 +38,24 @@ export default function PlayerRecordPage({ mode }: PlayerRecordPageProps) {
     const { session, isLoading: sessionLoading, logout } = usePlayerSession();
 
     // 球員端需要驗證登入狀態
-    // 球員端需要驗證登入狀態
     useEffect(() => {
-        // if (mode === 'player' && !sessionLoading && player) {
-        //     // 比對 session 中的 playerId 是否與當前球員相符
-        //     if (!session || session.playerId !== player.id) {
-        //         navigate(`/${teamSlug}/p/${playerId}/login`);
-        //     }
-        // }
-    }, [mode, session, sessionLoading, player, playerId, teamSlug, navigate]);
+        if (mode === 'player' && !sessionLoading) {
+            // 如果球員資料載入完成，但 Session 不存在或不匹配
+            if (player && (!session || session.playerId !== player.id)) {
+                // 如果是用 short_code 進來的，session.playerId 是 UUID，player.id 也是 UUID，應該會匹配
+                // 無論如何，如果沒登入，就踢去登入頁
+                navigate(`/${teamSlug}/login`);
+            } else if (!player && !playerLoading && !session) {
+                // 找不到球員且沒 Session
+                navigate(`/${teamSlug}/login`);
+            }
+        }
+    }, [mode, session, sessionLoading, player, playerLoading, teamSlug, navigate]);
+
+    const handleLogout = () => {
+        logout();
+        navigate(`/${teamSlug}/login`);
+    };
 
     // 載入中
     if (playerLoading || (mode === 'player' && sessionLoading)) {
@@ -86,14 +97,17 @@ export default function PlayerRecordPage({ mode }: PlayerRecordPageProps) {
                     {/* 頂部資訊 */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                {player.jersey_number || '#'}
+                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden">
+                                {player.avatar_url ? (
+                                    <img src={player.avatar_url} alt={player.name} className="h-full w-full object-cover" />
+                                ) : (
+                                    <span>{player.jersey_number || '#'}</span>
+                                )}
                             </div>
                             <div>
                                 <h1 className="text-lg font-bold">{player.name}</h1>
                                 <p className="text-sm text-muted-foreground">
                                     {new Date().toLocaleDateString('zh-TW', {
-                                        year: 'numeric',
                                         month: 'long',
                                         day: 'numeric',
                                         weekday: 'long',
@@ -101,10 +115,43 @@ export default function PlayerRecordPage({ mode }: PlayerRecordPageProps) {
                                 </p>
                             </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={logout}>
-                            登出
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="icon" onClick={() => setIsProfileOpen(true)}>
+                                <Settings className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
+                                <LogOut className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
+
+                    {/* 個人資訊卡片 (新增) */}
+                    <Card>
+                        <CardContent className="p-4 grid grid-cols-2 gap-4 text-center">
+                            <div className="border-r">
+                                <p className="text-xs text-muted-foreground">位置</p>
+                                <p className="font-semibold">{player.position || '未設定'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground">背號</p>
+                                <p className="font-semibold">#{player.jersey_number || '-'}</p>
+                            </div>
+                            <div className="border-t pt-2 border-r">
+                                <p className="text-xs text-muted-foreground">身高</p>
+                                <p className="font-semibold">{player.height_cm ? `${player.height_cm} cm` : '-'}</p>
+                            </div>
+                            <div className="border-t pt-2">
+                                <p className="text-xs text-muted-foreground">體重</p>
+                                <p className="font-semibold">{player.weight_kg ? `${player.weight_kg} kg` : '-'}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <ProfileEditDialog
+                        open={isProfileOpen}
+                        onOpenChange={setIsProfileOpen}
+                        player={player}
+                    />
 
                     <Tabs defaultValue="daily" className="w-full">
                         <TabsList className="grid w-full grid-cols-2 mb-4">

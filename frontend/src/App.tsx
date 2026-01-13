@@ -12,6 +12,9 @@ import PlayersPage from './pages/dashboard/PlayersPage';
 import NotificationsPage from './pages/dashboard/NotificationsPage';
 import PlayerLoginPage from './pages/player/PlayerLoginPage';
 import PlayerRecordPage from './pages/shared/PlayerRecordPage';
+import InvitationPage from './pages/team/InvitationPage';
+import TeamSettingsPage from './pages/team/TeamSettingsPage';
+import TeamLoginPage from './pages/team/TeamLoginPage';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
@@ -49,6 +52,14 @@ const router = createBrowserRouter([
     path: '/team/setup',
     element: <TeamSetupPage />,
   },
+  {
+    path: '/invite/:teamSlug',
+    element: <InvitationPage />,
+  },
+  {
+    path: '/:teamSlug/login',
+    element: <TeamLoginPage />,
+  },
 
   // 教練端 - 儀表板
   {
@@ -70,6 +81,10 @@ const router = createBrowserRouter([
       {
         path: 'notifications',
         element: <NotificationsPage />,
+      },
+      {
+        path: 'settings',
+        element: <TeamSettingsPage />,
       },
     ],
   },

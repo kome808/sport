@@ -89,39 +89,22 @@ export function usePlayerLogin() {
             playerCode,
             password,
         }: {
-            playerCode: string;  // 可以是 short_code 或 UUID
+            playerCode: string;
             password: string;
         }) => {
-            // 判斷是 short_code（3 碼）還是 UUID
-            const isShortCode = playerCode.length <= 10 && !playerCode.includes('-');
+            const { data, error } = await supabase
+                .rpc('login_player', {
+                    player_code: playerCode,
+                    password: password
+                });
 
-            // 取得球員資料
-            let query = supabase
-                .schema(SCHEMA_NAME)
-                .from('players')
-                .select('*')
-                .eq('is_active', true);
-
-            if (isShortCode) {
-                query = query.eq('short_code', playerCode.toLowerCase());
-            } else {
-                query = query.eq('id', playerCode);
+            if (error) {
+                console.error('Login error:', error);
+                throw new Error(error.message || '登入失敗');
             }
 
-            const { data: player, error } = await query.limit(1);
-
-            if (error) throw new Error('查詢失敗');
-            if (!player || player.length === 0) throw new Error('找不到球員');
-
-            const playerData = player[0] as Player;
-
-            // 簡易密碼驗證 (目前直接比對，實際應使用 bcrypt)
-            // TODO: 正式環境應透過 Edge Function 做 bcrypt 比對
-            if (playerData.password_hash !== password) {
-                throw new Error('密碼錯誤');
-            }
-
-            return playerData;
+            // RPC returns JSONB, cast to Player
+            return data as Player;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['player'] });
@@ -164,8 +147,44 @@ export function usePlayer(playerCode: string | undefined) {
 }
 
 // ================================================
-// 取得球員今日紀錄
+// 更新球員資料 (個人設定)
 // ================================================
+
+export function useUpdatePlayerProfile() {
+    return useMutation({
+        mutationFn: async ({ playerId, oldPassword, name, jerseyNumber, position, height_cm, weight_kg, newPassword }: any) => {
+            const { data, error } = await supabase.rpc('update_player_profile', {
+                player_id: playerId,
+                old_password: oldPassword,
+                name,
+                jersey_number: jerseyNumber,
+                position,
+                height_cm,
+                weight_kg,
+                new_password: newPassword || null
+            });
+
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: (data) => {
+            // 可以選擇更新 Session，雖然 Session 通常只存 ID
+            // 如果 Session 有存 Name，這裡可以更新
+            const stored = localStorage.getItem(SESSION_KEY);
+            if (stored) {
+                const session = JSON.parse(stored);
+                if (session.playerId === data.id) {
+                    session.playerName = data.name;
+                    session.jerseyNumber = data.jersey_number;
+                    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+                    // Force reload or create context update? For now simple storage update.
+                    // A better way is to rely on react-query invalidation.
+                }
+            }
+        }
+    });
+}
+
 
 export function usePlayerTodayRecord(playerId: string | undefined) {
     const today = new Date().toISOString().split('T')[0];

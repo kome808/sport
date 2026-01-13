@@ -23,14 +23,18 @@ interface PainReportFormProps {
 
 const BODY_PART_LABELS: Record<string, string> = {
     'shoulder_r': '右肩膀', 'shoulder_l': '左肩膀',
-    'arm_r': '右手臂', 'arm_l': '左手臂',
+    'arm_r': '右大臂', 'arm_l': '左大臂',
     'elbow_r': '右手肘', 'elbow_l': '左手肘',
+    'forearm_r': '右前臂', 'forearm_l': '左前臂',
     'wrist_r': '右手腕', 'wrist_l': '左手腕',
-    'hip_r': '右髖部', 'hip_l': '左髖部',
+    'hand_r': '右手掌', 'hand_l': '左手掌',
+    'hip_r': '右臀部/髖部', 'hip_l': '左臀部/髖部',
+    'hip_front': '鼠蹊/前髖',
     'thigh_r': '右大腿', 'thigh_l': '左大腿',
     'knee_r': '右膝蓋', 'knee_l': '左膝蓋',
     'calf_r': '右小腿', 'calf_l': '左小腿',
     'ankle_r': '右腳踝', 'ankle_l': '左腳踝',
+    'foot_r': '右腳掌', 'foot_l': '左腳掌',
     'core_front': '腹部/核心',
     'back_upper': '上背', 'back_lower': '下背',
     'head': '頭部', 'neck': '頸部',
@@ -56,7 +60,7 @@ export default function PainReportForm({ playerId, onSuccess }: PainReportFormPr
                 report_date: format(new Date(), 'yyyy-MM-dd'),
                 body_part: bodyPart,
                 pain_level: painLevel,
-                pain_type: null, // 暫時移除疼痛類型，設為 null (假設後端未強制 NOT NULL)
+                pain_type: undefined, // 暫時移除疼痛類型，設為 undefined
                 description: description,
                 is_resolved: false,
             });
