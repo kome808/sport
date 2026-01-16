@@ -75,7 +75,7 @@ const router = createBrowserRouter([
         element: <PlayersPage />,
       },
       {
-        path: 'player/:playerId',
+        path: 'player/:playerId/:activeTab?',
         element: <PlayerRecordPage mode="coach" />,
       },
       {
@@ -95,7 +95,7 @@ const router = createBrowserRouter([
     element: <PlayerLoginPage />,
   },
   {
-    path: '/:teamSlug/p/:playerId',
+    path: '/:teamSlug/p/:playerId/:activeTab?',
     element: <PlayerRecordPage mode="player" />,
   },
 ]);

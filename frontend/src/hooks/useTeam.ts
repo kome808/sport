@@ -5,7 +5,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, SCHEMA_NAME } from '@/lib/supabase';
-import type { Team, Player } from '@/types';
+import type { Team, Player, FatigueMetrics } from '@/types';
 
 // ================================================
 // Query Keys
@@ -416,3 +416,63 @@ export function useUpdateTeamInvitation() {
         },
     });
 }
+
+// ================================================
+// 更新球隊基本資料
+// ================================================
+
+export function useUpdateTeam() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ teamId, updates }: { teamId: string; updates: Partial<Team> }) => {
+            const { error } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('teams')
+                .update(updates)
+                .eq('id', teamId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: teamKeys.all });
+        },
+    });
+}
+
+// ================================================
+// 取得全隊疲勞指標 (Dashboard 用)
+// ================================================
+
+export interface TeamFatigueData {
+    player: {
+        id: string;
+        name: string;
+        jersey_number: number;
+        avatar_url: string | null;
+        position: string | null;
+    };
+    metrics: FatigueMetrics;
+}
+
+export function useTeamFatigueOverview(teamId: string | undefined) {
+    return useQuery({
+        queryKey: ['teamFatigue', teamId],
+        queryFn: async () => {
+            if (!teamId) return [];
+
+            const { data, error } = await supabase
+                .schema(SCHEMA_NAME)
+                .rpc('get_team_fatigue_overview', {
+                    p_team_id: teamId,
+                    p_date: new Date().toISOString().split('T')[0]
+                });
+
+            if (error) throw error;
+            return (data || []) as TeamFatigueData[];
+        },
+        enabled: !!teamId,
+        refetchInterval: 60000, // 每分鐘更新
+    });
+}
+

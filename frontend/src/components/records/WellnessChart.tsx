@@ -1,22 +1,6 @@
-/**
- * Wellness 趨勢圖表元件
- * 支援顯示 Wellness 總分與 Training Load
- */
-
-import { useState } from 'react';
-import {
-    LineChart,
-    BarChart,
-    Line,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    ReferenceLine,
-    Legend,
-} from 'recharts';
+import { useState, useMemo } from 'react';
+import { ResponsiveLine } from '@nivo/line';
+import { ResponsiveBar } from '@nivo/bar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { DailyRecord } from '@/types';
 
@@ -28,117 +12,175 @@ export default function WellnessChart({ records }: WellnessChartProps) {
     const [chartMode, setChartMode] = useState<'wellness' | 'load'>('wellness');
 
     // 將紀錄按日期排序（舊到新）
-    const sortedRecords = [...records].sort(
+    const sortedRecords = useMemo(() =>
+    ([...records].sort(
         (a, b) => new Date(a.record_date).getTime() - new Date(b.record_date).getTime()
+    )), [records]
     );
 
-    // 準備圖表資料
-    const chartData = sortedRecords.map((record) => ({
-        date: new Date(record.record_date).toLocaleDateString('zh-TW', {
-            month: 'numeric',
-            day: 'numeric',
-        }),
-        fullDate: record.record_date,
-        wellness: record.wellness_total || 0,
-        load: record.training_load_au || ((record.srpe_score || 0) * (record.training_minutes || 0)),
-        minutes: record.training_minutes || 0,
-        rpe: record.srpe_score || 0,
-    }));
+    // 準備 Nivo Line Chart 資料 (Wellness)
+    const wellnessData = useMemo(() => [
+        {
+            id: "身心總分 Wellness",
+            color: "hsl(var(--primary))",
+            data: sortedRecords.map(r => ({
+                x: new Date(r.record_date).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }),
+                y: r.wellness_total || 0
+            }))
+        }
+    ], [sortedRecords]);
+
+    // 準備 Nivo Bar Chart 資料 (Load)
+    const loadData = useMemo(() =>
+        sortedRecords.map(r => ({
+            date: new Date(r.record_date).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }),
+            "訓練負荷 sRPE": r.training_load_au || 0,
+        })), [sortedRecords]
+    );
 
     if (records.length === 0) {
         return (
-            <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+            <div className="flex items-center justify-center h-[200px] text-slate-400 font-bold bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                 尚無資料可顯示
             </div>
         );
     }
 
     return (
-        <div className="space-y-4">
-            {/* 圖表模式切換 */}
-            <Tabs value={chartMode} onValueChange={(v) => setChartMode(v as 'wellness' | 'load')} className="w-full">
-                <TabsList className="grid w-full max-w-[400px] grid-cols-2">
-                    <TabsTrigger value="wellness">Wellness 狀態</TabsTrigger>
-                    <TabsTrigger value="load">訓練負荷 (Load)</TabsTrigger>
-                </TabsList>
-            </Tabs>
-
-            <div className="w-full h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    {chartMode === 'wellness' ? (
-                        <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                            <XAxis dataKey="date" tick={{ fontSize: 12 }} tickLine={false} />
-                            <YAxis domain={[0, 25]} tickCount={6} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: 'hsl(var(--popover))',
-                                    border: '1px solid hsl(var(--border))',
-                                    borderRadius: 'var(--radius)',
-                                }}
-                                labelStyle={{ fontWeight: 'bold', color: 'hsl(var(--popover-foreground))' }}
-                            />
-                            <ReferenceLine y={20} stroke="#22c55e" strokeDasharray="5 5" label={{ value: '良好', position: 'insideRight', fill: '#22c55e', fontSize: 10 }} />
-                            <ReferenceLine y={15} stroke="#eab308" strokeDasharray="5 5" label={{ value: '注意', position: 'insideRight', fill: '#eab308', fontSize: 10 }} />
-                            <Line
-                                type="monotone"
-                                dataKey="wellness"
-                                name="Wellness 總分"
-                                stroke="hsl(var(--primary))"
-                                strokeWidth={2}
-                                dot={{ fill: 'hsl(var(--primary))', strokeWidth: 0, r: 4 }}
-                                activeDot={{ r: 6 }}
-                            />
-                            <Legend />
-                        </LineChart>
-                    ) : (
-                        <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                            <XAxis dataKey="date" tick={{ fontSize: 12 }} tickLine={false} />
-                            <YAxis
-                                yAxisId="left"
-                                label={{ value: 'Load (au)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
-                                tick={{ fontSize: 12 }}
-                                tickLine={false}
-                                axisLine={false}
-                            />
-                            <YAxis
-                                yAxisId="right"
-                                orientation="right"
-                                domain={[0, 300]}
-                                hide
-                            />
-                            <Tooltip
-                                cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
-                                contentStyle={{
-                                    backgroundColor: 'hsl(var(--popover))',
-                                    border: '1px solid hsl(var(--border))',
-                                    borderRadius: 'var(--radius)',
-                                }}
-                                labelStyle={{ fontWeight: 'bold', color: 'hsl(var(--popover-foreground))' }}
-                                formatter={(value, name) => {
-                                    if (name === 'Load') return [`${value} au`, '訓練負荷'];
-                                    return [value, name];
-                                }}
-                            />
-                            <Bar
-                                yAxisId="left"
-                                dataKey="load"
-                                name="Load"
-                                fill="hsl(var(--primary))"
-                                radius={[4, 4, 0, 0]}
-                            />
-                            <Legend />
-                        </BarChart>
-                    )}
-                </ResponsiveContainer>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <Tabs value={chartMode} onValueChange={(v) => setChartMode(v as 'wellness' | 'load')} className="w-full">
+                    <TabsList className="grid w-full max-w-[300px] grid-cols-2 rounded-xl bg-slate-100 p-1">
+                        <TabsTrigger value="wellness" className="rounded-lg font-black data-[state=active]:bg-white data-[state=active]:shadow-sm">身心 Wellness</TabsTrigger>
+                        <TabsTrigger value="load" className="rounded-lg font-black data-[state=active]:bg-white data-[state=active]:shadow-sm">負荷 sRPE</TabsTrigger>
+                    </TabsList>
+                </Tabs>
             </div>
 
-            {/* 說明文字 */}
-            <div className="text-xs text-muted-foreground text-center">
-                {chartMode === 'wellness'
-                    ? '總分範圍 5-25，分數越高代表狀態越好'
-                    : '訓練負荷 (Load) = sRPE (強度 0-10) × 訓練時間 (分鐘)'}
+            <div className="w-full h-[320px] bg-white rounded-2xl border border-slate-100 shadow-inner p-4 relative">
+                {chartMode === 'wellness' ? (
+                    <ResponsiveLine
+                        data={wellnessData}
+                        margin={{ top: 20, right: 30, left: 40, bottom: 50 }}
+                        xScale={{ type: 'point' }}
+                        yScale={{ type: 'linear', min: 0, max: 25, stacked: false, reverse: false }}
+                        yFormat=" >-.0f"
+                        axisTop={null}
+                        axisRight={null}
+                        axisBottom={{
+                            tickSize: 5,
+                            tickPadding: 10,
+                            tickRotation: 0,
+                            legend: '日期',
+                            legendOffset: 40,
+                            legendPosition: 'middle'
+                        }}
+                        axisLeft={{
+                            tickSize: 5,
+                            tickPadding: 5,
+                            tickRotation: 0,
+                            tickValues: [0, 5, 10, 15, 20, 25],
+                            legend: '分數',
+                            legendOffset: -35,
+                            legendPosition: 'middle'
+                        }}
+                        enableGridX={false}
+                        colors={["#0ea5e9"]}
+                        lineWidth={3}
+                        pointSize={8}
+                        pointColor="#ffffff"
+                        pointBorderWidth={2}
+                        pointBorderColor={{ from: 'serieColor' }}
+                        pointLabelYOffset={-12}
+                        useMesh={true}
+                        enableArea={true}
+                        areaOpacity={0.1}
+                        theme={{
+                            axis: {
+                                ticks: {
+                                    text: {
+                                        fontSize: 10,
+                                        fill: '#64748b',
+                                        fontWeight: 700
+                                    }
+                                },
+                                legend: {
+                                    text: {
+                                        fontSize: 10,
+                                        fill: '#94a3b8',
+                                        fontWeight: 900
+                                    }
+                                }
+                            },
+                            grid: {
+                                line: {
+                                    stroke: '#f1f5f9',
+                                    strokeWidth: 1
+                                }
+                            }
+                        }}
+                    />
+                ) : (
+                    <ResponsiveBar
+                        data={loadData}
+                        keys={['訓練負荷 sRPE']}
+                        indexBy="date"
+                        margin={{ top: 20, right: 30, left: 50, bottom: 50 }}
+                        padding={0.3}
+                        valueScale={{ type: 'linear' }}
+                        indexScale={{ type: 'band', round: true }}
+                        colors={["#3b82f6"]}
+                        borderRadius={4}
+                        borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                        axisTop={null}
+                        axisRight={null}
+                        axisBottom={{
+                            tickSize: 5,
+                            tickPadding: 10,
+                            tickRotation: 0,
+                            legend: '日期',
+                            legendOffset: 40,
+                            legendPosition: 'middle'
+                        }}
+                        axisLeft={{
+                            tickSize: 5,
+                            tickPadding: 5,
+                            tickRotation: 0,
+                            legend: '負荷 (AU)',
+                            legendOffset: -40,
+                            legendPosition: 'middle'
+                        }}
+                        labelSkipWidth={12}
+                        labelSkipHeight={12}
+                        labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                        theme={{
+                            axis: {
+                                ticks: {
+                                    text: {
+                                        fontSize: 10,
+                                        fill: '#64748b',
+                                        fontWeight: 700
+                                    }
+                                },
+                                legend: {
+                                    text: {
+                                        fontSize: 10,
+                                        fill: '#94a3b8',
+                                        fontWeight: 900
+                                    }
+                                }
+                            }
+                        }}
+                    />
+                )}
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <p className="text-[11px] text-slate-500 font-bold text-center">
+                    {chartMode === 'wellness'
+                        ? '💡 Wellness 總分範圍 5-25，分數越高代表身體狀態越理想'
+                        : '💡 訓練負荷 (Training Load) = 自覺強度 (sRPE) × 總訓練時間'}
+                </p>
             </div>
         </div>
     );

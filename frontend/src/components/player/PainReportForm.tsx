@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
+import { BODY_PATHS } from './BodyMapPaths';
 import BodyMapSelector from './BodyMapSelector';
 
 import { useSubmitPainReport } from '@/hooks/usePlayer';
@@ -21,24 +22,7 @@ interface PainReportFormProps {
     onSuccess?: () => void;
 }
 
-const BODY_PART_LABELS: Record<string, string> = {
-    'shoulder_r': '右肩膀', 'shoulder_l': '左肩膀',
-    'arm_r': '右大臂', 'arm_l': '左大臂',
-    'elbow_r': '右手肘', 'elbow_l': '左手肘',
-    'forearm_r': '右前臂', 'forearm_l': '左前臂',
-    'wrist_r': '右手腕', 'wrist_l': '左手腕',
-    'hand_r': '右手掌', 'hand_l': '左手掌',
-    'hip_r': '右臀部/髖部', 'hip_l': '左臀部/髖部',
-    'hip_front': '鼠蹊/前髖',
-    'thigh_r': '右大腿', 'thigh_l': '左大腿',
-    'knee_r': '右膝蓋', 'knee_l': '左膝蓋',
-    'calf_r': '右小腿', 'calf_l': '左小腿',
-    'ankle_r': '右腳踝', 'ankle_l': '左腳踝',
-    'foot_r': '右腳掌', 'foot_l': '左腳掌',
-    'core_front': '腹部/核心',
-    'back_upper': '上背', 'back_lower': '下背',
-    'head': '頭部', 'neck': '頸部',
-};
+
 
 export default function PainReportForm({ playerId, onSuccess }: PainReportFormProps) {
     const [isSuccess, setIsSuccess] = useState(false);
@@ -84,7 +68,7 @@ export default function PainReportForm({ playerId, onSuccess }: PainReportFormPr
         return 'text-red-500';
     };
 
-    const selectedPartLabel = bodyPart ? BODY_PART_LABELS[bodyPart] || bodyPart : '請點擊下方圖示選擇';
+    const selectedPartLabel = bodyPart ? (BODY_PATHS.find(p => p.id === bodyPart)?.name || bodyPart) : '請點擊下方圖示選擇';
 
     return (
         <Card className="border-red-100 dark:border-red-900/20">

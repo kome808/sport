@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import {
@@ -24,23 +24,22 @@ export default function BodyMapSelector({ selectedPart, onSelect, className }: B
     const frontPaths = BODY_PATHS.filter(p => p.view === 'front');
     const backPaths = BODY_PATHS.filter(p => p.view === 'back');
 
-    const renderPath = (part: typeof BODY_PATHS[0]) => {
-        const effectiveId = (part as any).alias || part.id;
-        const isSelected = selectedPart === effectiveId;
+    const renderPolygon = (part: typeof BODY_PATHS[0], index: number) => {
+        const isSelected = selectedPart === part.id;
 
         return (
-            <Tooltip key={part.id} delayDuration={0}>
+            <Tooltip key={`${part.id}-${index}`} delayDuration={0}>
                 <TooltipTrigger asChild>
-                    <path
-                        d={part.d}
+                    <polygon
+                        points={part.points}
                         fill={isSelected ? "#ef4444" : "#e5e7eb"}
                         stroke={isSelected ? "#b91c1c" : "#9ca3af"}
-                        strokeWidth="2"
+                        strokeWidth="0.5"
                         className={cn(
                             "transition-colors cursor-pointer outline-none",
                             isSelected ? "fill-red-500" : "hover:fill-red-200"
                         )}
-                        onClick={() => handleSelect(effectiveId)}
+                        onClick={() => handleSelect(part.id)}
                     />
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
@@ -56,17 +55,17 @@ export default function BodyMapSelector({ selectedPart, onSelect, className }: B
                 {/* Front View */}
                 <Card className="p-4 flex flex-col items-center cursor-pointer hover:bg-muted/10 transition-colors">
                     <h4 className="mb-2 font-medium text-sm text-foreground/70">正面</h4>
-                    {/* ViewBox adjusted to fit new paths (Width ~150, Height ~300) */}
-                    <svg viewBox="50 0 100 300" className="w-full h-auto max-h-[300px]">
-                        {frontPaths.map(renderPath)}
+                    {/* ViewBox based on original library (0 0 100 200) */}
+                    <svg viewBox="0 0 100 200" className="w-full h-auto max-h-[300px]">
+                        {frontPaths.map(renderPolygon)}
                     </svg>
                 </Card>
 
                 {/* Back View */}
                 <Card className="p-4 flex flex-col items-center cursor-pointer hover:bg-muted/10 transition-colors">
                     <h4 className="mb-2 font-medium text-sm text-foreground/70">背面</h4>
-                    <svg viewBox="50 0 100 300" className="w-full h-auto max-h-[300px]">
-                        {backPaths.map(renderPath)}
+                    <svg viewBox="0 0 100 200" className="w-full h-auto max-h-[300px]">
+                        {backPaths.map(renderPolygon)}
                     </svg>
                 </Card>
             </div>

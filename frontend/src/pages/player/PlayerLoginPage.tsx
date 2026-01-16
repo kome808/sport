@@ -97,64 +97,83 @@ export default function PlayerLoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    {/* 球員頭像 */}
-                    <div className="flex justify-center mb-4">
-                        <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
-                            {player.jersey_number || player.name.charAt(0)}
+        <div className="min-h-screen flex items-center justify-center bg-[#F4F4F7] px-4">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-24 -right-24 h-96 w-96 bg-primary/5 rounded-full blur-3xl" />
+                <div className="absolute -bottom-24 -left-24 h-96 w-96 bg-info/5 rounded-full blur-3xl" />
+            </div>
+
+            <Card className="w-full max-w-md border-slate-200/60 rounded-[2rem] shadow-xl shadow-slate-200/50 overflow-hidden bg-white/80 backdrop-blur-xl relative z-10">
+                <CardHeader className="text-center pt-10 pb-6">
+                    {/* 球員頭像 - Premium Style */}
+                    <div className="flex justify-center mb-6">
+                        <div className="relative">
+                            <div className="h-24 w-24 rounded-3xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center text-primary text-3xl font-black tracking-tighter border-2 border-white shadow-lg shadow-primary/10 ring-8 ring-primary/5">
+                                {player.avatar_url ? (
+                                    <img src={player.avatar_url} alt={player.name} className="h-full w-full object-cover" />
+                                ) : (
+                                    <span>#{player.jersey_number || '00'}</span>
+                                )}
+                            </div>
+                            <div className="absolute -bottom-2 -right-2 h-8 w-8 bg-white rounded-2xl shadow-md border border-slate-100 flex items-center justify-center">
+                                <Lock className="h-4 w-4 text-slate-400" />
+                            </div>
                         </div>
                     </div>
 
-                    <CardTitle className="text-xl">{player.name}</CardTitle>
-                    <CardDescription>
-                        {team?.name || teamSlug} · #{player.jersey_number || '?'}
+                    <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">{player.name}</CardTitle>
+                    <CardDescription className="text-slate-500 font-bold mt-1">
+                        <span className="text-primary/70">{team?.name || teamSlug}</span>
+                        <span className="mx-2 text-slate-300">·</span>
+                        <span>背號 #{player.jersey_number || '?'}</span>
                     </CardDescription>
                 </CardHeader>
 
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="password">
-                                <Lock className="inline-block h-4 w-4 mr-1" />
-                                登入密碼
+                <CardContent className="px-8 pb-10">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-3">
+                            <Label htmlFor="password" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                                專屬存取密碼
                             </Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                placeholder="請輸入密碼"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                autoComplete="current-password"
-                            />
+                            <div className="relative group">
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    placeholder="請輸入 4-6 位數字密碼"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    autoComplete="current-password"
+                                    className="rounded-2xl border-slate-200 bg-slate-50/50 focus:bg-white h-14 pl-12 text-lg font-bold tracking-[0.5em] transition-all group-hover:border-primary/30"
+                                />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
+                            </div>
                             {error && (
-                                <p className="text-sm text-destructive">{error}</p>
+                                <p className="text-sm font-bold text-red-500 bg-red-50 p-3 rounded-xl border border-red-100 animate-in fade-in slide-in-from-top-2">{error}</p>
                             )}
                         </div>
 
                         <Button
                             type="submit"
-                            className="w-full"
+                            className="w-full h-14 rounded-2xl bg-primary hover:bg-primary-hover font-black text-lg shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                             disabled={loginMutation.isPending}
                         >
                             {loginMutation.isPending ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    登入中...
+                                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                                    進行驗證中...
                                 </>
                             ) : (
-                                '登入填寫回報'
+                                '開始回報訓練狀態'
                             )}
                         </Button>
 
-                        <div className="text-center">
+                        <div className="text-center pt-2">
                             <Link
                                 to="/"
-                                className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                                className="text-xs font-bold text-slate-400 hover:text-primary transition-colors inline-flex items-center gap-2 group"
                             >
-                                <ArrowLeft className="h-3 w-3" />
-                                返回首頁
+                                <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                                返回系統主頁
                             </Link>
                         </div>
                     </form>

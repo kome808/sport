@@ -26,23 +26,23 @@ import NotificationBell from '@/components/dashboard/NotificationBell';
 // 側邊欄選單項目
 const menuItems = [
     {
-        title: '戰情室',
+        title: '戰情室 Dashboard',
         icon: LayoutDashboard,
         path: '',
     },
     {
-        title: '球員管理',
+        title: '球員管理 Players',
         icon: Users,
         path: '/players',
     },
     {
-        title: '警訊中心',
+        title: '警訊中心 Notifications',
         icon: Bell,
         path: '/notifications',
         badge: 3, // TODO: 從 API 取得未讀數量
     },
     {
-        title: '球隊設定',
+        title: '球隊設定 Settings',
         icon: Settings,
         path: '/settings',
     },
@@ -131,7 +131,7 @@ export default function DashboardLayout() {
                     className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-foreground/70 hover:bg-muted hover:text-foreground transition-all duration-200"
                 >
                     <Settings className="h-5 w-5 text-muted-foreground" />
-                    <span>設定</span>
+                    <span>設定 Settings</span>
                 </Link>
                 <button
                     className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200"
@@ -141,7 +141,7 @@ export default function DashboardLayout() {
                     }}
                 >
                     <LogOut className="h-5 w-5" />
-                    <span>登出</span>
+                    <span>登出 Logout</span>
                 </button>
             </div>
         </div>

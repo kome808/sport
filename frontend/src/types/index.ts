@@ -122,3 +122,48 @@ export interface AuthState {
     coach?: Coach;
     currentTeam?: Team;
 }
+
+// 疲勞監測相關型別
+export interface FatigueMetrics {
+    acwr: {
+        short_term_load: number;
+        long_term_load: number;
+        acwr: number | null;
+        risk_level: 'green' | 'yellow' | 'red' | 'gray';
+    };
+    psi: {
+        psi_score: number;
+        wellness_component: number;
+        load_component: number;
+        status: 'green' | 'yellow' | 'red';
+    };
+    rhr: {
+        baseline_rhr: number | null;
+        current_rhr: number | null;
+        difference: number | null;
+        status: 'green' | 'yellow' | 'orange' | 'red' | 'gray';
+    };
+    wellness: {
+        total: number;
+        items: {
+            sleep: number;
+            fatigue: number;
+            mood: number;
+            stress: number;
+            soreness: number;
+        };
+        status: 'green' | 'yellow' | 'red';
+    } | null;
+    srpe: {
+        score: number;
+        minutes: number;
+        load_au: number;
+        status: 'green' | 'yellow' | 'red';
+    } | null;
+    honesty: {
+        honesty_score: number | null;
+        conflict_type: 'none' | 'moderate' | 'severe' | 'unknown';
+        message: string;
+    };
+    date: string;
+}

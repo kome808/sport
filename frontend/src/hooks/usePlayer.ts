@@ -152,7 +152,7 @@ export function usePlayer(playerCode: string | undefined) {
 
 export function useUpdatePlayerProfile() {
     return useMutation({
-        mutationFn: async ({ playerId, oldPassword, name, jerseyNumber, position, height_cm, weight_kg, newPassword }: any) => {
+        mutationFn: async ({ playerId, oldPassword, name, jerseyNumber, position, height_cm, weight_kg, newPassword, birth_date }: any) => {
             const { data, error } = await supabase.rpc('update_player_profile', {
                 player_id: playerId,
                 old_password: oldPassword,
@@ -161,7 +161,8 @@ export function useUpdatePlayerProfile() {
                 position,
                 height_cm,
                 weight_kg,
-                new_password: newPassword || null
+                new_password: newPassword || null,
+                birth_date: birth_date || null
             });
 
             if (error) throw error;

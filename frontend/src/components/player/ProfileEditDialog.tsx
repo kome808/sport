@@ -23,6 +23,7 @@ const profileSchema = z.object({
     position: z.string().optional(),
     height_cm: z.string().optional(),
     weight_kg: z.string().optional(),
+    birth_date: z.string().optional(),
     old_password: z.string().min(1, '請輸入舊密碼以進行驗證'),
     new_password: z.string().optional(),
     confirm_new_password: z.string().optional(),
@@ -48,6 +49,7 @@ interface ProfileEditDialogProps {
         position?: string;
         height_cm?: number;
         weight_kg?: number;
+        birth_date?: string;
     };
 }
 
@@ -62,6 +64,7 @@ export function ProfileEditDialog({ open, onOpenChange, player }: ProfileEditDia
             position: '',
             height_cm: '',
             weight_kg: '',
+            birth_date: '',
             old_password: '',
             new_password: '',
             confirm_new_password: '',
@@ -77,6 +80,7 @@ export function ProfileEditDialog({ open, onOpenChange, player }: ProfileEditDia
                 position: player.position || '',
                 height_cm: player.height_cm?.toString() || '',
                 weight_kg: player.weight_kg?.toString() || '',
+                birth_date: player.birth_date || '',
                 old_password: '', // Always clear passwords
                 new_password: '',
                 confirm_new_password: '',
@@ -94,6 +98,7 @@ export function ProfileEditDialog({ open, onOpenChange, player }: ProfileEditDia
                 position: data.position || null,
                 height_cm: data.height_cm ? parseFloat(data.height_cm) : null,
                 weight_kg: data.weight_kg ? parseFloat(data.weight_kg) : null,
+                birth_date: data.birth_date || null,
                 newPassword: data.new_password || null
             });
 
@@ -158,6 +163,12 @@ export function ProfileEditDialog({ open, onOpenChange, player }: ProfileEditDia
                             <Label htmlFor="weight_kg">體重 (kg)</Label>
                             <Input id="weight_kg" type="number" step="0.1" {...register('weight_kg')} placeholder="75" />
                         </div>
+                    </div>
+
+                    {/* 出生日期 */}
+                    <div className="space-y-2">
+                        <Label htmlFor="birth_date">出生日期</Label>
+                        <Input id="birth_date" type="date" {...register('birth_date')} />
                     </div>
 
                     <div className="border-t my-4" />
