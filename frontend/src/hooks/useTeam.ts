@@ -451,6 +451,7 @@ export interface TeamFatigueData {
         jersey_number: number;
         avatar_url: string | null;
         position: string | null;
+        short_code: string; // 新增短代碼
     };
     metrics: FatigueMetrics;
 }
@@ -469,7 +470,37 @@ export function useTeamFatigueOverview(teamId: string | undefined) {
                 });
 
             if (error) throw error;
-            return (data || []) as TeamFatigueData[];
+
+            // 轉換後端回傳的數字 Level 為前端使用的字串
+            const rawData = data || [];
+            return rawData.map((item: any) => {
+                // 確保 metrics 存在且結構正確
+                const metrics = item.metrics || {};
+
+                // 後端現在直接回傳 'red'|'yellow'|'green'|'gray' 字串，無需再做數字轉換
+                // 但為了安全起見，我們還是給個預設值
+                return {
+                    ...item,
+                    metrics: {
+                        acwr: {
+                            ...metrics.acwr,
+                            risk_level: metrics.acwr?.risk_level || 'gray'
+                        },
+                        rhr: {
+                            ...metrics.rhr,
+                            risk_level: metrics.rhr?.status || 'gray' // 注意：Player Metrics 那邊是用 status 欄位
+                        },
+                        wellness: {
+                            ...metrics.wellness,
+                            risk_level: metrics.wellness?.status || 'gray'
+                        },
+                        srpe: {
+                            ...metrics.srpe,
+                            risk_level: metrics.srpe?.status || 'gray'
+                        },
+                    }
+                };
+            }) as TeamFatigueData[];
         },
         enabled: !!teamId,
         refetchInterval: 60000, // 每分鐘更新

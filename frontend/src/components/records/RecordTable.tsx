@@ -3,6 +3,17 @@
  * 顯示每日回報的歷史紀錄
  */
 
+import { useState } from 'react';
+import { MessageSquare } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { DailyRecord } from '@/types';
 
 interface RecordTableProps {
@@ -72,81 +83,122 @@ export default function RecordTable({ records, compact = false }: RecordTablePro
         );
     }
 
+    const [selectedFeedback, setSelectedFeedback] = useState<{ date: string, content: string } | null>(null);
+
     // 完整版：表格顯示
     return (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
-            <table className="w-full text-sm border-collapse">
-                <thead>
-                    {/* 第一層表頭：分組 */}
-                    <tr className="bg-slate-50/80 border-b border-slate-200">
-                        <th rowSpan={2} className="text-left py-3 px-4 font-black text-slate-900 border-r border-slate-200">日期</th>
-                        <th rowSpan={2} className="text-center py-3 px-2 font-black text-slate-900 border-r border-slate-200">RHR</th>
-                        <th colSpan={6} className="text-center py-2 px-2 font-black text-slate-900 border-r border-slate-200 bg-info/5">身心狀態 Wellness</th>
-                        <th colSpan={3} className="text-center py-2 px-2 font-black text-slate-900 border-r border-slate-200 bg-primary/5">訓練負荷 sRPE</th>
-                        <th rowSpan={2} className="text-center py-3 px-2 font-black text-slate-900">風險 Risk</th>
-                    </tr>
-                    {/* 第二層表頭：具體指標 */}
-                    <tr className="bg-slate-50/50 border-b border-slate-200">
-                        <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">睡眠 Sleep</th>
-                        <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">疲勞 Fatigue</th>
-                        <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">心情 Mood</th>
-                        <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">壓力 Stress</th>
-                        <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">痠痛 Soreness</th>
-                        <th className="text-center py-2 px-2 font-black text-info border-r border-slate-200">總分 Total</th>
-                        <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">強度 RPE</th>
-                        <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">時間 Duration</th>
-                        <th className="text-center py-2 px-2 font-black text-primary border-r border-slate-200">負荷 Load</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {records.map((record) => (
-                        <tr key={record.id} className="border-b last:border-0 hover:bg-slate-50/50 transition-colors">
-                            <td className="py-2.5 px-4 font-medium text-slate-900 border-r border-slate-100">{formatDate(record.record_date)}</td>
-                            <td className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-100">
-                                {record.rhr_bpm || '-'}
-                            </td>
-                            <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
-                                {record.sleep_quality || '-'}
-                            </td>
-                            <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
-                                {record.fatigue_level || '-'}
-                            </td>
-                            <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">{record.mood || '-'}</td>
-                            <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
-                                {record.stress_level || '-'}
-                            </td>
-                            <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
-                                {record.muscle_soreness || '-'}
-                            </td>
-                            <td className="text-center py-2 px-2 font-black text-info border-r border-slate-100">
-                                {record.wellness_total || '-'}
-                            </td>
-                            <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
-                                {record.srpe_score ?? '-'}
-                            </td>
-                            <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
-                                {record.training_minutes || '-'}
-                            </td>
-                            <td className="text-center py-2 px-2 font-black text-primary border-r border-slate-100">
-                                {record.training_load_au || '-'}
-                            </td>
-                            <td className="text-center py-2 px-2">
-                                {record.risk_level ? (
-                                    <span
-                                        className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${riskColors[record.risk_level as keyof typeof riskColors] ||
-                                            'bg-slate-100 text-slate-400'
-                                            }`}
-                                    >
-                                        {record.risk_level}
-                                    </span>
-                                ) : (
-                                    <span className="px-3 py-1 rounded-full text-[10px] font-black text-slate-300 bg-slate-50 border border-slate-100">NONE</span>
-                                )}
-                            </td>
+        <>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                <table className="w-full text-sm border-collapse">
+                    <thead>
+                        {/* 第一層表頭：分組 */}
+                        <tr className="bg-slate-50/80 border-b border-slate-200">
+                            <th rowSpan={2} className="text-left py-3 px-4 font-black text-slate-900 border-r border-slate-200">日期</th>
+                            <th rowSpan={2} className="text-center py-3 px-2 font-black text-slate-900 border-r border-slate-200">RHR</th>
+                            <th colSpan={6} className="text-center py-2 px-2 font-black text-slate-900 border-r border-slate-200 bg-info/5">身心狀態 Wellness</th>
+                            <th colSpan={3} className="text-center py-2 px-2 font-black text-slate-900 border-r border-slate-200 bg-primary/5">訓練負荷 sRPE</th>
+                            <th rowSpan={2} className="text-center py-3 px-2 font-black text-slate-900 border-r border-slate-200">風險 Risk</th>
+                            <th rowSpan={2} className="text-center py-3 px-2 font-black text-slate-900">回饋</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+                        {/* 第二層表頭：具體指標 */}
+                        <tr className="bg-slate-50/50 border-b border-slate-200">
+                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">睡眠</th>
+                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">疲勞</th>
+                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">心情</th>
+                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">壓力</th>
+                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">痠痛</th>
+                            <th className="text-center py-2 px-2 font-black text-info border-r border-slate-200">總分</th>
+                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">強度</th>
+                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">時間</th>
+                            <th className="text-center py-2 px-2 font-black text-primary border-r border-slate-200">負荷</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {records.map((record) => (
+                            <tr key={record.id} className="border-b last:border-0 hover:bg-slate-50/50 transition-colors">
+                                <td className="py-2.5 px-4 font-medium text-slate-900 border-r border-slate-100">{formatDate(record.record_date)}</td>
+                                <td className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-100">
+                                    {record.rhr_bpm || '-'}
+                                </td>
+                                <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
+                                    {record.sleep_quality || '-'}
+                                </td>
+                                <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
+                                    {record.fatigue_level || '-'}
+                                </td>
+                                <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">{record.mood || '-'}</td>
+                                <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
+                                    {record.stress_level || '-'}
+                                </td>
+                                <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
+                                    {record.muscle_soreness || '-'}
+                                </td>
+                                <td className="text-center py-2 px-2 font-black text-info border-r border-slate-100">
+                                    {record.wellness_total || '-'}
+                                </td>
+                                <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
+                                    {record.srpe_score ?? '-'}
+                                </td>
+                                <td className="text-center py-2 px-2 text-slate-600 border-r border-slate-100">
+                                    {record.training_minutes || '-'}
+                                </td>
+                                <td className="text-center py-2 px-2 font-black text-primary border-r border-slate-100">
+                                    {record.training_load_au || '-'}
+                                </td>
+                                <td className="text-center py-2 px-2">
+                                    {record.risk_level ? (
+                                        <span
+                                            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${riskColors[record.risk_level as keyof typeof riskColors] ||
+                                                'bg-slate-100 text-slate-400'
+                                                }`}
+                                        >
+                                            {record.risk_level}
+                                        </span>
+                                    ) : (
+                                        <span className="px-3 py-1 rounded-full text-[10px] font-black text-slate-300 bg-slate-50 border border-slate-100">NONE</span>
+                                    )}
+                                </td>
+                                <td className="text-center py-2 px-2 border-l border-slate-100">
+                                    {record.feedback && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full"
+                                            onClick={() => setSelectedFeedback({
+                                                date: formatDate(record.record_date),
+                                                content: record.feedback!
+                                            })}
+                                        >
+                                            <MessageSquare className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            <Dialog open={!!selectedFeedback} onOpenChange={(open) => !open && setSelectedFeedback(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <MessageSquare className="h-5 w-5 text-primary" />
+                            <span>球員回饋</span>
+                        </DialogTitle>
+                        <DialogDescription>
+                            {selectedFeedback?.date} 的紀錄回饋
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4">
+                        <ScrollArea className="h-[200px] w-full rounded-md border p-4 bg-slate-50">
+                            <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                {selectedFeedback?.content}
+                            </p>
+                        </ScrollArea>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

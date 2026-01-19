@@ -127,6 +127,41 @@ export default function TeamSettingsPage() {
                                 <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
                             )}
                         </div>
+
+                        {/* 球員登入網址 */}
+                        <div className="space-y-2">
+                            <Label>球員登入網址</Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    value={`${window.location.origin}/${teamSlug}/login`}
+                                    readOnly
+                                    className="bg-muted font-mono text-sm"
+                                />
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(`${window.location.origin}/${teamSlug}/login`);
+                                                    setIsCopied(true);
+                                                    setTimeout(() => setIsCopied(false), 2000);
+                                                }}
+                                            >
+                                                {isCopied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>複製登入網址</TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Info className="h-3 w-3" />
+                                球員使用此網址登入個人帳號
+                            </p>
+                        </div>
                     </CardContent>
                 </Card>
 

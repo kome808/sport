@@ -11,7 +11,7 @@ interface FatigueRadarChartProps {
     variant?: 'compact' | 'full';
 }
 
-export function FatigueRadarChart({ data, variant = 'full' }: FatigueRadarChartProps) {
+export function FatigueRadarChart({ data }: FatigueRadarChartProps) {
     // 轉換數據格式適配 Nivo Radar
     // 原始數據: 1-5
     // Sleep: 5=Best, 1=Worst
@@ -27,17 +27,27 @@ export function FatigueRadarChart({ data, variant = 'full' }: FatigueRadarChartP
     // Let's assume standard wellness: Higher is Better.
 
     const chartData = [
-        { metric: '睡眠', value: data.sleep },
-        { metric: '疲勞感', value: data.fatigue }, // 若此值 5 代表很累，則需反轉。假設 5=狀態好(不累)
-        { metric: '心情', value: data.mood },
-        { metric: '壓力', value: data.stress }, // 假設 5=放鬆
-        { metric: '肌肉痠痛', value: data.soreness }, // 假設 5=不痠
+        { metric: '睡眠', value: data.sleep || 0 },
+        { metric: '疲勞感', value: data.fatigue || 0 },
+        { metric: '心情', value: data.mood || 0 },
+        { metric: '壓力', value: data.stress || 0 },
+        { metric: '肌肉痠痛', value: data.soreness || 0 },
     ];
 
-    const isCompact = variant === 'compact';
+    const hasData = Object.values(data).some(v => v !== null && v !== 0);
+
+    if (!hasData) {
+        return (
+            <div
+                className="flex items-center justify-center text-slate-400 font-medium h-full w-full py-4 text-xs"
+            >
+                <div>暫無狀態數據 (No Data)</div>
+            </div>
+        );
+    }
 
     return (
-        <div style={{ height: isCompact ? '250px' : '400px', width: '100%' }}>
+        <div style={{ height: '100%', width: '100%' }}>
             <ResponsiveRadar
                 data={chartData}
                 keys={['value']}
@@ -57,8 +67,9 @@ export function FatigueRadarChart({ data, variant = 'full' }: FatigueRadarChartP
                     axis: {
                         ticks: {
                             text: {
-                                fontSize: 12,
-                                fill: '#888888' // 標籤顏色
+                                fontSize: 11,
+                                fill: '#000000', // 標籤顏色改為黑色
+                                fontWeight: 900  // 增加字重
                             }
                         }
                     },

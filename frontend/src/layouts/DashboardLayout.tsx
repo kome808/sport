@@ -13,7 +13,7 @@ import {
     Menu,
     ChevronRight,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -21,7 +21,18 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import NotificationBell from '@/components/dashboard/NotificationBell';
+// import NotificationBell from '@/components/dashboard/NotificationBell';
+import { useTeam } from '@/hooks/useTeam';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { UserProfileDialog, type ProfileDialogMode } from "@/components/dashboard/UserProfileDialog";
+import { supabase } from '@/lib/supabase';
 
 // 側邊欄選單項目
 const menuItems = [
@@ -35,12 +46,12 @@ const menuItems = [
         icon: Users,
         path: '/players',
     },
-    {
-        title: '警訊中心 Notifications',
-        icon: Bell,
-        path: '/notifications',
-        badge: 3, // TODO: 從 API 取得未讀數量
-    },
+    // {
+    //     title: '警訊中心 Notifications',
+    //     icon: Bell,
+    //     path: '/notifications',
+    //     badge: 3, // TODO: 從 API 取得未讀數量
+    // },
     {
         title: '球隊設定 Settings',
         icon: Settings,
@@ -50,8 +61,36 @@ const menuItems = [
 
 export default function DashboardLayout() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
+    const { data: teamData } = useTeam(teamSlug || '');
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [dialogMode, setDialogMode] = useState<ProfileDialogMode>('profile');
+    const [userName, setUserName] = useState<string>(''); // User name state
+
+    // 獲取使用者資料
+    const fetchUserProfile = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.user_metadata?.full_name) {
+            setUserName(user.user_metadata.full_name);
+        }
+    };
+
+    // 初始載入
+    useEffect(() => {
+        fetchUserProfile();
+    }, []);
+
+    // 登出處理
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        window.location.href = '/login'; // 重導至登入頁
+    };
+
+    const openProfileDialog = (mode: ProfileDialogMode) => {
+        setDialogMode(mode);
+        setIsProfileOpen(true);
+    };
 
     // 判斷當前路徑是否為選中狀態
     const isActive = (path: string) => {
@@ -69,20 +108,24 @@ export default function DashboardLayout() {
                     ST
                 </div>
                 <div className="flex flex-col">
-                    <span className="font-semibold text-sm">運動訓練平台</span>
-                    <span className="text-xs text-muted-foreground">Sports Training</span>
+                    <span className="font-semibold text-sm text-slate-900">運動訓練平台</span>
+                    <span className="text-xs text-slate-500">Sports Training</span>
                 </div>
             </div>
 
             {/* 球隊資訊 */}
             <div className="border-b p-4">
                 <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                        <Users className="h-6 w-6 text-muted-foreground" />
+                    <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                        {teamData?.avatar_url ? (
+                            <img src={teamData.avatar_url} alt={teamData.name} className="h-full w-full rounded-full object-cover" />
+                        ) : (
+                            <Users className="h-6 w-6 text-slate-700" />
+                        )}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">測試球隊</p>
-                        <p className="text-xs text-muted-foreground">/{teamSlug}</p>
+                        <p className="font-bold text-sm truncate text-slate-900">{teamData?.name || '載入中...'}</p>
+                        <p className="text-xs font-medium text-slate-500">/{teamSlug}</p>
                     </div>
                 </div>
             </div>
@@ -99,20 +142,20 @@ export default function DashboardLayout() {
                                 key={item.path}
                                 to={`/${teamSlug}${item.path}`}
                                 className={`
-                  flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium
+                  flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-bold
                   transition-all duration-200 group
                   ${active
                                         ? 'bg-primary text-primary-foreground shadow-md shadow-primary/40'
-                                        : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                                        : 'text-slate-900 hover:bg-slate-100'
                                     }
                 `}
                                 onClick={() => setIsSidebarOpen(false)}
                             >
-                                <Icon className={`h-5 w-5 ${active ? '' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                                <Icon className={`h-5 w-5 ${active ? '' : 'text-slate-500 group-hover:text-slate-900'}`} />
                                 <span className="flex-1">{item.title}</span>
-                                {item.badge && !active && (
+                                {'badge' in item && (item as any).badge && !active && (
                                     <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs rounded-full">
-                                        {item.badge}
+                                        {(item as any).badge as React.ReactNode}
                                     </Badge>
                                 )}
                                 {active && (
@@ -128,13 +171,13 @@ export default function DashboardLayout() {
             <div className="border-t p-3 space-y-1">
                 <Link
                     to={`/${teamSlug}/settings`}
-                    className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-foreground/70 hover:bg-muted hover:text-foreground transition-all duration-200"
+                    className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-bold text-slate-900 hover:bg-slate-100 transition-all duration-200"
                 >
-                    <Settings className="h-5 w-5 text-muted-foreground" />
+                    <Settings className="h-5 w-5 text-slate-500" />
                     <span>設定 Settings</span>
                 </Link>
                 <button
-                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-bold text-destructive hover:bg-destructive/10 transition-all duration-200"
                     onClick={() => {
                         // TODO: 登出邏輯
                         console.log('登出');
@@ -178,27 +221,63 @@ export default function DashboardLayout() {
 
                         {/* 麵包屑 */}
                         <div className="flex-1">
-                            <h1 className="text-lg font-semibold">
+                            <h1 className="text-lg font-bold text-slate-900">
                                 {menuItems.find(item => isActive(item.path))?.title || '儀表板'}
                             </h1>
                         </div>
 
                         {/* 右側工具列 */}
                         <div className="flex items-center gap-2">
-                            <NotificationBell />
+                            {/* <NotificationBell /> */}
 
                             <Separator orientation="vertical" className="h-6" />
 
-                            <div className="flex items-center gap-2">
-                                <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
-                                    C
-                                </div>
-                                <span className="hidden text-sm font-medium md:inline-block">
-                                    教練
-                                </span>
-                            </div>
-                        </div>
-                    </header>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="flex items-center gap-2 outline-none cursor-pointer hover:bg-slate-100 p-1.5 rounded-lg transition-colors">
+                                        <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+                                            {userName ? userName.charAt(0).toUpperCase() : 'C'}
+                                        </div>
+                                        <span className="hidden text-sm font-bold text-slate-900 md:inline-block">
+                                            {userName || '教練'}
+                                        </span>
+                                        <ChevronRight className="h-3 w-3 text-slate-400 rotate-90" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuLabel>我的帳號</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+
+                                    <DropdownMenuItem onClick={() => openProfileDialog('profile')} className="cursor-pointer">
+                                        <Users className="mr-2 h-4 w-4" />
+                                        <span>修改姓名</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem onClick={() => openProfileDialog('email')} className="cursor-pointer">
+                                        <Bell className="mr-2 h-4 w-4" /> {/* Reuse Bell icon temporarily or import Mail */}
+                                        <span>更換 Email</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem onClick={() => openProfileDialog('password')} className="cursor-pointer">
+                                        <Settings className="mr-2 h-4 w-4" /> {/* Reuse Settings icon or import Lock */}
+                                        <span>修改密碼</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 cursor-pointer">
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        <span>登出</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <UserProfileDialog
+                                open={isProfileOpen}
+                                onOpenChange={setIsProfileOpen}
+                                mode={dialogMode}
+                                onSuccess={fetchUserProfile}
+                            />
+                        </div>                    </header>
 
                     {/* 頁面內容 */}
                     <main className="p-4 lg:p-6">

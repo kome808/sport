@@ -1,7 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronRight } from "lucide-react";
 
 interface MetricCardProps {
     title: string;
@@ -29,85 +28,86 @@ export default function MetricCard({
     centerValue
 }: MetricCardProps) {
     const statusColors = {
-        green: 'text-green-500 bg-green-500/10 border-green-200',
-        yellow: 'text-yellow-500 bg-yellow-500/10 border-yellow-200',
-        orange: 'text-orange-600 bg-orange-500/10 border-orange-200',
-        red: 'text-red-600 bg-red-500/10 border-red-200',
+        green: 'text-status-low-dark bg-status-low/10 border-status-low/20',
+        yellow: 'text-status-med-dark bg-status-med/10 border-status-med/20',
+        orange: 'text-status-med-dark bg-status-med/10 border-status-med/20',
+        red: 'text-status-high-dark bg-status-high/10 border-status-high/20',
         gray: 'text-slate-600 bg-slate-100 border-transparent',
     };
 
     const statusBorder = {
-        green: 'border-l-4 border-l-green-500',
-        yellow: 'border-l-4 border-l-yellow-500',
-        orange: 'border-l-4 border-l-orange-500',
-        red: 'border-l-4 border-l-red-500',
-        gray: 'border-l-4 border-l-gray-300',
+        green: 'border-l-4 border-l-status-low',
+        yellow: 'border-l-4 border-l-status-med',
+        orange: 'border-l-4 border-l-status-med',
+        red: 'border-l-4 border-l-status-high',
+        gray: 'border-l-4 border-l-slate-300',
     };
 
     return (
         <Card
             className={cn(
-                "relative overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer",
-                "hover:-translate-y-1 bg-card border border-border",
+                "relative overflow-hidden transition-all duration-300 cursor-pointer min-h-[180px] flex flex-col h-full",
+                "hover:-translate-y-0.5 border-2",
+                status === 'green' ? "bg-status-low/5 border-status-low/10" :
+                    status === 'yellow' || status === 'orange' ? "bg-status-med/5 border-status-med/10" :
+                        status === 'red' ? "bg-status-high/5 border-status-high/10" :
+                            "bg-slate-50/50 border-slate-200",
                 statusBorder[status],
                 className
             )}
             onClick={onClick}
         >
-            <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-2">
+            <CardContent className="px-5 py-4 flex flex-col h-full gap-2">
+                {/* Header: Title and Info Button (Far Right) */}
+                <div className="flex justify-between items-center mb-1 min-h-[32px]">
                     <div className="flex items-center gap-2">
-                        {icon && <div className={cn("p-2 rounded-lg shadow-sm font-bold", statusColors[status])}>{icon}</div>}
-                        <h3 className="font-bold text-sm text-slate-900">{title}</h3>
-                        {onInfoClick && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-6 px-2 text-[10px] font-black text-primary border-primary/20 hover:bg-primary/10 hover:border-primary/40 rounded-lg ml-1"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onInfoClick();
-                                }}
-                            >
-                                指標說明
-                            </Button>
-                        )}
+                        {icon && <div className={cn("p-1.5 rounded-lg shadow-sm font-bold", statusColors[status])}>{icon}</div>}
+                        <h3 className="font-black text-sm text-slate-800 tracking-tight uppercase">{title}</h3>
                     </div>
-                    {status !== 'gray' && (
-                        <div className={cn("h-3 w-3 rounded-full shadow-sm ring-2 ring-white", statusColors[status].split(' ')[0].replace('text-', 'bg-'))} />
-                    )}
-                </div>
-
-                <div className={cn(
-                    "flex items-baseline gap-2 mt-1",
-                    centerValue && "justify-center flex-col items-center mt-3"
-                )}>
-                    <span className={cn(
-                        "text-3xl font-black tracking-tight",
-                        statusColors[status].split(' ')[0],
-                        centerValue && "text-4xl"
-                    )}>
-                        {value}
-                    </span>
-                    {description && (
-                        <span className={cn(
-                            "text-xs text-slate-500 font-bold line-clamp-1",
-                            centerValue && "mt-1"
-                        )}>
-                            {description}
-                        </span>
-                    )}
-                </div>
-
-                {children}
-
-                {onClick && (
-                    <div className="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    {onInfoClick && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-2 text-[10px] font-black text-primary border-primary/20 hover:bg-primary/10 hover:border-primary/40 rounded-lg"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onInfoClick();
+                            }}
+                        >
+                            指標說明
                         </Button>
+                    )}
+                </div>
+
+                {(value !== "" || description) && (
+                    <div className={cn(
+                        "flex flex-col flex-1 relative gap-1",
+                        centerValue ? "items-center justify-center" : "items-start pt-1"
+                    )}>
+                        <div className={cn("flex flex-col", centerValue ? "items-center" : "items-start")}>
+                            {value !== "" && (
+                                <span className={cn(
+                                    "text-4xl font-black tracking-tighter leading-none",
+                                    statusColors[status].split(' ')[0],
+                                    centerValue && "text-5xl"
+                                )}>
+                                    {value}
+                                </span>
+                            )}
+                            {description && (
+                                <span className={cn(
+                                    "text-xs text-slate-500 font-black uppercase tracking-wider mt-1.5",
+                                    centerValue && "text-base text-slate-600"
+                                )}>
+                                    {description}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 )}
+
+                {/* Additional Content (Gauges, Progress Bars) */}
+                {children}
             </CardContent>
         </Card>
     );

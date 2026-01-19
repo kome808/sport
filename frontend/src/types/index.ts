@@ -32,6 +32,7 @@ export interface Team {
     coach_id: string;
     name: string;
     slug: string;
+    avatar_url?: string; // 新增
     logo_url?: string;
     sport_type: string;
     settings?: Record<string, unknown>;
@@ -68,6 +69,7 @@ export interface DailyRecord {
     training_load_au?: number;
     acwr?: number;
     risk_level?: RiskLevel;
+    feedback?: string;
     created_at: string;
     updated_at: string;
 }
@@ -135,13 +137,14 @@ export interface FatigueMetrics {
         psi_score: number;
         wellness_component: number;
         load_component: number;
-        status: 'green' | 'yellow' | 'red';
+        status: 'green' | 'yellow' | 'red' | 'gray';
     };
     rhr: {
         baseline_rhr: number | null;
         current_rhr: number | null;
         difference: number | null;
         status: 'green' | 'yellow' | 'orange' | 'red' | 'gray';
+        risk_level?: string;
     };
     wellness: {
         total: number;
@@ -152,13 +155,15 @@ export interface FatigueMetrics {
             stress: number;
             soreness: number;
         };
-        status: 'green' | 'yellow' | 'red';
+        status: 'green' | 'yellow' | 'red' | 'gray';
+        risk_level?: string;
     } | null;
     srpe: {
         score: number;
         minutes: number;
         load_au: number;
-        status: 'green' | 'yellow' | 'red';
+        status: 'green' | 'yellow' | 'red' | 'gray';
+        risk_level?: string;
     } | null;
     honesty: {
         honesty_score: number | null;

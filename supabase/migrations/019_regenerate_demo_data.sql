@@ -5,7 +5,7 @@
 -- ================================================
 
 -- 1. 定義生成函數
-CREATE OR REPLACE FUNCTION sport.regenerate_demo_data()
+CREATE OR REPLACE FUNCTION sport.regenerate_demo_data(p_team_slug TEXT DEFAULT 'doraemon-baseball')
 RETURNS void AS $$
 DECLARE
   v_team_id UUID;
@@ -26,8 +26,8 @@ DECLARE
   v_soreness INT;
   
 BEGIN
-  -- 1. 取得 "大雄棒球隊"
-  SELECT id INTO v_team_id FROM sport.teams WHERE slug = 'doraemon-baseball';
+  -- 1. 取得目標球隊
+  SELECT id INTO v_team_id FROM sport.teams WHERE slug = p_team_slug;
   
   IF v_team_id IS NULL THEN
     RAISE EXCEPTION '找不到大雄棒球隊 (doraemon-baseball)，請先確認種子資料 (003_seed_data.sql) 已執行。';
@@ -97,15 +97,15 @@ BEGIN
         v_minutes := 120 + floor(random() * 30);
     END IF;
     
-    -- Wellness: 15-20 (中等)
-    v_sleep := 3 + floor(random() * 2);
-    v_fatigue := 3 + floor(random() * 2);
+    -- Wellness: 15-18 (注意範圍)
+    v_sleep := 2 + floor(random() * 2);    -- 2-3 (較差)
+    v_fatigue := 3 + floor(random() * 2);  -- 3-4
     v_mood := 3 + floor(random() * 2);
-    v_stress := 3 + floor(random() * 2);
+    v_stress := 2 + floor(random() * 2);   -- 2-3 (壓力大)
     v_soreness := 3 + floor(random() * 2);
     
-    -- RHR: Slightly elevated.
-    v_rhr := 55 + floor(random() * 5);
+    -- RHR: Baseline ~55. Current ~58-63 (明顯上升，觸發注意)
+    v_rhr := 58 + floor(random() * 6);
 
     INSERT INTO sport.daily_records (player_id, record_date, rhr_bpm, sleep_quality, fatigue_level, mood, stress_level, muscle_soreness, srpe_score, training_minutes)
     VALUES (v_player_warn_id, v_date, v_rhr, v_sleep, v_fatigue, v_mood, v_stress, v_soreness, v_rpe, v_minutes);
@@ -145,4 +145,4 @@ END $$ LANGUAGE plpgsql;
 GRANT EXECUTE ON FUNCTION sport.regenerate_demo_data TO authenticated, service_role;
 
 -- 3. 立即執行一次
-SELECT sport.regenerate_demo_data();
+SELECT sport.regenerate_demo_data('doraemon-baseball');

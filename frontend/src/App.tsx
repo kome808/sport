@@ -12,6 +12,7 @@ import PlayersPage from './pages/dashboard/PlayersPage';
 import NotificationsPage from './pages/dashboard/NotificationsPage';
 import PlayerLoginPage from './pages/player/PlayerLoginPage';
 import PlayerRecordPage from './pages/shared/PlayerRecordPage';
+import PlayerReportPage from './pages/player/PlayerReportPage';
 import InvitationPage from './pages/team/InvitationPage';
 import TeamSettingsPage from './pages/team/TeamSettingsPage';
 import TeamLoginPage from './pages/team/TeamLoginPage';
@@ -93,6 +94,10 @@ const router = createBrowserRouter([
   {
     path: '/:teamSlug/p/:playerId/login',
     element: <PlayerLoginPage />,
+  },
+  {
+    path: '/:teamSlug/p/:playerId/report',
+    element: <PlayerReportPage />,
   },
   {
     path: '/:teamSlug/p/:playerId/:activeTab?',

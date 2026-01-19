@@ -66,11 +66,21 @@
   --color-input: #DBDADE;
   --color-ring: #7367F0;
 
-  /* 風險等級配色 (More Vibrant) */
-  --color-risk-green: #28C76F;
-  --color-risk-yellow: #FF9F43;
-  --color-risk-red: #EA5455;
-  --color-risk-black: #2F2B3D;
+  /* 狀態等級配色 (Semantic Status Colors - RGB for opacity support) */
+  --color-status-high: #EF4F3B;
+  --color-status-high-rgb: 239, 79, 59;
+  --color-status-high-dark: #921C1C;
+
+  --color-status-med: #EFB954;
+  --color-status-med-rgb: 239, 185, 84;
+  --color-status-med-dark: #916A1B;
+
+  --color-status-low: #53EF8B;
+  --color-status-low-rgb: 83, 239, 139;
+  --color-status-low-dark: #1A703F;
+
+  --color-risk-black: #606266;
+  --color-risk-black-rgb: 96, 98, 102;
 
   /* ========== 圓角系統 ========== */
   --radius-sm: 0.25rem;
@@ -131,17 +141,17 @@ body {
   background: rgba(168, 170, 174, 0.8);
 }
 
-/* ========== 風險等級 Utility ========== */
-@utility bg-risk-green {
-  background-color: var(--color-risk-green);
+/* ========== 狀態等級 Utility ========== */
+@utility bg-status-high {
+  background-color: var(--color-status-high);
 }
 
-@utility bg-risk-yellow {
-  background-color: var(--color-risk-yellow);
+@utility bg-status-med {
+  background-color: var(--color-status-med);
 }
 
-@utility bg-risk-red {
-  background-color: var(--color-risk-red);
+@utility bg-status-low {
+  background-color: var(--color-status-low);
 }
 
 @utility bg-risk-black {
@@ -171,6 +181,14 @@ body {
   --color-popover-foreground: var(--popover-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+
+  /* Status Colors */
+  --color-status-high: var(--color-status-high);
+  --color-status-high-dark: var(--color-status-high-dark);
+  --color-status-med: var(--color-status-med);
+  --color-status-med-dark: var(--color-status-med-dark);
+  --color-status-low: var(--color-status-low);
+  --color-status-low-dark: var(--color-status-low-dark);
 }
 
 /* Explicit CSS Variables for Shadcn components that might use var(--primary) directly */

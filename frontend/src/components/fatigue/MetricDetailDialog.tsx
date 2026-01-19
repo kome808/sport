@@ -141,13 +141,13 @@ export default function MetricDetailDialog({
                 <div className="space-y-6 py-4">
                     {/* 定義與計算 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-muted/50 p-4 rounded-lg">
-                            <h4 className="font-semibold mb-2 text-sm text-muted-foreground">指標意義</h4>
-                            <p className="text-sm">{info.meaning}</p>
+                        <div className="bg-slate-100 p-4 rounded-lg">
+                            <h4 className="font-bold mb-2 text-sm text-slate-800">指標意義</h4>
+                            <p className="text-sm text-black font-medium">{info.meaning}</p>
                         </div>
-                        <div className="bg-muted/50 p-4 rounded-lg">
-                            <h4 className="font-semibold mb-2 text-sm text-muted-foreground">測量方式</h4>
-                            <p className="text-sm">{info.how}</p>
+                        <div className="bg-slate-100 p-4 rounded-lg">
+                            <h4 className="font-bold mb-2 text-sm text-slate-800">測量方式</h4>
+                            <p className="text-sm text-black font-medium">{info.how}</p>
                         </div>
                     </div>
 
@@ -158,9 +158,9 @@ export default function MetricDetailDialog({
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-muted">
                                     <tr>
-                                        <th className="px-4 py-2 font-medium text-muted-foreground">範圍</th>
-                                        <th className="px-4 py-2 font-medium text-muted-foreground">狀態</th>
-                                        <th className="px-4 py-2 font-medium text-muted-foreground">教練建議</th>
+                                        <th className="px-4 py-2 font-bold text-slate-900 border-b">範圍</th>
+                                        <th className="px-4 py-2 font-bold text-slate-900 border-b">狀態</th>
+                                        <th className="px-4 py-2 font-bold text-slate-900 border-b">教練建議</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -172,10 +172,10 @@ export default function MetricDetailDialog({
                                                     {row.label}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-2 text-muted-foreground">
+                                            <td className="px-4 py-2 text-slate-900 font-medium">
                                                 {row.advice}
                                                 {data && checkCurrentRange(metricType, data, row.range) && (
-                                                    <span className="ml-2 text-primary text-xs font-bold whitespace-nowrap">👈 你的位置</span>
+                                                    <span className="ml-2 text-primary text-xs font-black whitespace-nowrap">👈 你的位置</span>
                                                 )}
                                             </td>
                                         </tr>

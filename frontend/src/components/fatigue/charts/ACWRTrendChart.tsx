@@ -73,19 +73,23 @@ export function ACWRTrendChart({ historyData }: ACWRTrendChartProps) {
                     {
                         axis: 'y',
                         value: 1.5,
-                        lineStyle: { stroke: '#ef4444', strokeWidth: 2, strokeDasharray: '5,5' }, // Red
-                        legend: '高風險 (1.5)',
-                        legendOrientation: 'horizontal',
+                        lineStyle: { stroke: '#EF4F3B', strokeWidth: 2, strokeDasharray: '4 4' },
+                        legend: 'H 高風險 (1.5)',
+                        legendPosition: 'top-left',
                     },
                     {
                         axis: 'y',
                         value: 1.3,
-                        lineStyle: { stroke: '#eab308', strokeWidth: 1, strokeDasharray: '5,5' }, // Yellow
+                        lineStyle: { stroke: '#EFB954', strokeWidth: 1, strokeDasharray: '4 4' },
+                        legend: 'W 預警 (1.3)',
+                        legendPosition: 'top-left',
                     },
                     {
                         axis: 'y',
                         value: 0.8,
-                        lineStyle: { stroke: '#22c55e', strokeWidth: 1, strokeDasharray: '5,5' }, // Green
+                        lineStyle: { stroke: '#53EF8B', strokeWidth: 1, strokeDasharray: '4 4' },
+                        legend: 'S 安全 (0.8)',
+                        legendPosition: 'bottom-left',
                     }
                 ]}
                 pointSize={8}
@@ -96,6 +100,24 @@ export function ACWRTrendChart({ historyData }: ACWRTrendChartProps) {
                 useMesh={true}
                 enableSlices="x"
                 colors={['#0ea5e9']} // Sky Blue for ACWR line
+                theme={{
+                    axis: {
+                        ticks: {
+                            text: {
+                                fontSize: 10,
+                                fill: '#000000',
+                                fontWeight: 700
+                            }
+                        },
+                        legend: {
+                            text: {
+                                fontSize: 11,
+                                fill: '#000000',
+                                fontWeight: 900
+                            }
+                        }
+                    }
+                }}
             />
         </div>
     )

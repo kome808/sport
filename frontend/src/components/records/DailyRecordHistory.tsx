@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { Loader2, Calendar, TrendingUp, Table } from 'lucide-react';
+import { Loader2, Calendar, TrendingUp } from 'lucide-react';
 import { type DateRange } from "react-day-picker";
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -121,24 +121,9 @@ export default function DailyRecordHistory({
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-                {/* 趨勢圖 */}
-                <div>
-                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4" />
-                        趨勢分析
-                    </h4>
-                    <WellnessChart records={records || []} />
-                </div>
-
-                {/* 詳細表格 */}
-                <div>
-                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <Table className="h-4 w-4" />
-                        詳細紀錄
-                    </h4>
-                    <RecordTable records={records || []} />
-                </div>
+            <CardContent className="space-y-10 pt-6">
+                <WellnessChart records={records || []} />
+                <RecordTable records={records || []} />
             </CardContent>
         </Card>
     );
