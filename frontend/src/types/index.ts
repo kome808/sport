@@ -21,6 +21,7 @@ export interface Player {
     avatar_url?: string;
     password_hash?: string;
     short_code: string;  // 3 碼短代碼，用於簡化 URL
+    status: 'active' | 'graduated';
     is_active: boolean;
     created_at: string;
     updated_at: string;

@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { format } from 'date-fns';
 import {
     Activity,
     Users,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     AlertDialog,
@@ -28,9 +30,19 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useTeam, useTeamStats, useTeamFatigueOverview, usePlayers } from '@/hooks/useTeam';
+import { useTeam, useTeamStats, useTeamFatigueOverview, usePlayers, useTeamActivePainReports } from '@/hooks/useTeam';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
+
+// Body Part Map
+import { BODY_PATHS } from '@/components/player/BodyMapPaths';
+
+// Body Part Map
+const BODY_PART_MAP = BODY_PATHS.reduce((acc, part) => {
+    acc[part.id] = part.name;
+    return acc;
+}, {} as Record<string, string>);
+BODY_PART_MAP['other'] = '其他部位';
 
 export default function DashboardPage() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
@@ -48,6 +60,9 @@ export default function DashboardPage() {
 
     // 取得全隊疲勞指標
     const { data: fatigueData, isLoading: fatigueLoading } = useTeamFatigueOverview(teamId);
+
+    // 取得現有傷病列表
+    const { data: activePainReports } = useTeamActivePainReports(teamId);
 
     // 狀態：測試數據生成與對話框
     const [isGenerating, setIsGenerating] = useState(false);
@@ -320,7 +335,7 @@ export default function DashboardPage() {
                                         let riskValue = '';
 
                                         if (data.metrics.acwr.risk_level === 'red') {
-                                            riskLabel = 'ACWR';
+                                            riskLabel = '急慢性負荷比';
                                             riskValue = `${data.metrics.acwr.acwr}`;
                                         } else if (data.metrics.rhr.status === 'red') {
                                             riskLabel = '晨間心跳';
@@ -354,8 +369,11 @@ export default function DashboardPage() {
                                                     </span>
 
                                                     <div className="flex flex-col items-center w-full px-1">
-                                                        <span className="text-[9px] font-bold uppercase mb-0.5 tracking-tight text-white/90">{riskLabel}</span>
-                                                        <span className="text-[10px] font-bold truncate w-full text-center bg-white/20 py-0.5 rounded-full px-1.5 text-white">{riskValue}</span>
+                                                        <span className="text-xs font-bold uppercase mb-1 tracking-tight text-white/90 text-center leading-none">{riskLabel}</span>
+                                                        <span className={cn(
+                                                            "font-bold truncate w-full text-center bg-white/20 py-0.5 rounded-full px-1.5 text-white",
+                                                            data.player.name.length > 3 ? "text-xs" : "text-sm"
+                                                        )}>{riskValue}</span>
                                                     </div>
                                                 </div>
                                             </Link>
@@ -370,6 +388,131 @@ export default function DashboardPage() {
                                     <p className="text-xs text-slate-500">目前沒有球員處於高風險區域</p>
                                 </div>
                             )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 現有傷病名單 */}
+                <Card className="col-span-full border-slate-200 shadow-sm bg-white rounded-3xl overflow-hidden">
+                    <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                                <TrendingUp className="h-4 w-4 text-amber-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900">現有傷病名單</h3>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                                    <tr>
+                                        <th className="py-3 px-6 w-32">報告日期</th>
+                                        <th className="py-3 px-6 w-32">球員姓名</th>
+                                        <th className="py-3 px-6 w-48">受傷部位/狀況</th>
+                                        <th className="py-3 px-6 w-32 whitespace-nowrap">疼痛指數</th>
+                                        <th className="py-3 px-6">說明</th>
+                                        <th className="py-3 px-6 w-48">醫囑</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {activePainReports && activePainReports.length > 0 ? (
+                                        Object.values(
+                                            activePainReports.reduce((acc: any, report: any) => {
+                                                const pid = report.player.id;
+                                                if (!acc[pid]) {
+                                                    acc[pid] = {
+                                                        player: report.player,
+                                                        reports: []
+                                                    };
+                                                }
+                                                acc[pid].reports.push(report);
+                                                return acc;
+                                            }, {})
+                                        ).map((group: any) => {
+                                            // Get latest date
+                                            const latestReport = group.reports.sort((a: any, b: any) => new Date(b.report_date).getTime() - new Date(a.report_date).getTime())[0];
+                                            const maxPainLevel = Math.max(...group.reports.map((r: any) => r.pain_level || 0));
+
+                                            // Check if all reports in this group are resolved (or maybe just the latest one decides status)
+                                            // Ideally if there is ANY unresolved, it's unresolved.
+                                            const isAllResolved = group.reports.every((r: any) => r.is_resolved);
+
+                                            // Row styling for resolved
+                                            const rowClass = isAllResolved
+                                                ? "bg-green-50/30 hover:bg-green-50/50 transition-colors"
+                                                : "hover:bg-slate-50/50 transition-colors";
+
+                                            return (
+                                                <tr key={group.player.id} className={rowClass}>
+                                                    <td className="py-3 px-6 font-medium text-slate-700 align-top">
+                                                        {format(new Date(latestReport.report_date), 'MM/dd')}
+                                                        {isAllResolved && (
+                                                            <div className="text-[10px] text-green-600 font-bold mt-1">已解決</div>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-6 font-bold text-slate-900 align-top">
+                                                        <Link to={`/${teamSlug}/player/${group.player.short_code || group.player.id}`} className="hover:text-primary hover:underline">
+                                                            {group.player.name}
+                                                        </Link>
+                                                    </td>
+                                                    <td className="py-3 px-6 text-slate-600 align-top">
+                                                        <div className="flex flex-col gap-1">
+                                                            {group.reports.map((r: any) => (
+                                                                <span key={r.id} className="inline-flex items-center">
+                                                                    {r.type === 'illness' ? (
+                                                                        <Badge variant="outline" className="mr-1 py-0 px-1.5 h-5 text-[10px] bg-orange-50 text-orange-600 border-orange-200">生病</Badge>
+                                                                    ) : (
+                                                                        <Badge variant="outline" className="mr-1 py-0 px-1.5 h-5 text-[10px] bg-red-50 text-red-600 border-red-200">傷痛</Badge>
+                                                                    )}
+                                                                    {BODY_PART_MAP[r.body_part] || r.body_part}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-6 align-top">
+                                                        {maxPainLevel > 0 && (
+                                                            <Badge className={cn(
+                                                                "border-0",
+                                                                maxPainLevel >= 7 ? "bg-red-500" :
+                                                                    maxPainLevel >= 4 ? "bg-amber-500" : "bg-green-500"
+                                                            )}>{maxPainLevel}</Badge>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-6 text-slate-500 max-w-xs align-top">
+                                                        <div className="flex flex-col gap-2">
+                                                            {group.reports.map((r: any) => (
+                                                                <div key={r.id} className="text-sm border-l-2 border-slate-200 pl-2">
+                                                                    {r.description || '-'}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-6 text-slate-500 max-w-xs align-top">
+                                                        <div className="flex flex-col gap-2">
+                                                            {group.reports.map((r: any) => (
+                                                                r.doctor_note ? (
+                                                                    <div key={r.id} className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                                                        {r.doctor_note}
+                                                                    </div>
+                                                                ) : null
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={6} className="py-8 text-center text-slate-400">
+                                                目前無未解決的傷病回報
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </CardContent>
                 </Card>

@@ -46,9 +46,9 @@ export function useTeam(slug: string) {
 // 取得球隊球員列表
 // ================================================
 
-export function usePlayers(teamId: string | undefined) {
+export function usePlayers(teamId: string | undefined, status: 'active' | 'graduated' = 'active') {
     return useQuery({
-        queryKey: teamKeys.players(teamId || ''),
+        queryKey: [...teamKeys.players(teamId || ''), status],
         queryFn: async () => {
             if (!teamId) return [];
 
@@ -58,6 +58,7 @@ export function usePlayers(teamId: string | undefined) {
                 .select('*')
                 .eq('team_id', teamId)
                 .eq('is_active', true)
+                .eq('status', status)
                 .order('jersey_number', { ascending: true });
 
             if (error) throw error;
@@ -71,22 +72,27 @@ export function usePlayers(teamId: string | undefined) {
 // 取得球員每日紀錄 (含今日狀態)
 // ================================================
 
-export function usePlayersWithTodayStatus(teamId: string | undefined) {
+export function usePlayersWithTodayStatus(teamId: string | undefined, status: 'active' | 'graduated' | 'all' = 'active') {
     return useQuery({
-        queryKey: [...teamKeys.players(teamId || ''), 'withStatus'],
+        queryKey: [...teamKeys.players(teamId || ''), 'withStatus', status],
         queryFn: async () => {
             if (!teamId) return [];
 
             const today = new Date().toISOString().split('T')[0];
 
-            // 取得所有球員
-            const { data: players, error: playersError } = await supabase
+            // 取得球員
+            let query = supabase
                 .schema(SCHEMA_NAME)
                 .from('players')
                 .select('*')
                 .eq('team_id', teamId)
-                .eq('is_active', true)
-                .order('jersey_number', { ascending: true });
+                .eq('is_active', true);
+
+            if (status !== 'all') {
+                query = query.eq('status', status);
+            }
+
+            const { data: players, error: playersError } = await query.order('jersey_number', { ascending: true });
 
             if (playersError) throw playersError;
 
@@ -392,6 +398,78 @@ export function useDeletePlayer() {
 }
 
 // ================================================
+// 批次新增球員
+// ================================================
+
+export function useBatchAddPlayers() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ team_id, players }: { team_id: string; players: Partial<Player>[] }) => {
+            const { data, error } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('players')
+                .insert(players.map(p => ({ ...p, team_id })))
+                .select();
+
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: teamKeys.players(variables.team_id) });
+            queryClient.invalidateQueries({ queryKey: ['teamStats'] });
+        },
+    });
+}
+
+// ================================================
+// 批次更新球員狀態
+// ================================================
+
+export function useBatchUpdatePlayersStatus() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ playerIds, status }: { playerIds: string[]; status: 'active' | 'graduated' }) => {
+            const { error } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('players')
+                .update({ status })
+                .in('id', playerIds);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['players'] });
+        },
+    });
+}
+
+// ================================================
+// 批次刪除球員 (軟刪除)
+// ================================================
+
+export function useBatchDeletePlayers() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (playerIds: string[]) => {
+            const { error } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('players')
+                .update({ is_active: false })
+                .in('id', playerIds);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['players'] });
+            queryClient.invalidateQueries({ queryKey: ['teamStats'] });
+        },
+    });
+}
+
+// ================================================
 // 更新球隊邀請設定
 // ================================================
 
@@ -504,6 +582,96 @@ export function useTeamFatigueOverview(teamId: string | undefined) {
         },
         enabled: !!teamId,
         refetchInterval: 60000, // 每分鐘更新
+    });
+}
+
+// ================================================
+// 取得球隊未解決傷病列表 (Dashboard 用)
+// ================================================
+
+export function useTeamActivePainReports(teamId: string | undefined) {
+    return useQuery({
+        queryKey: teamKeys.painReports(teamId || ''),
+        queryFn: async () => {
+            if (!teamId) return [];
+
+            const today = new Date();
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(today.getDate() - 7);
+            const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+
+            const twoDaysAgo = new Date(today.getTime() - 48 * 60 * 60 * 1000).toISOString();
+
+            // 1. Fetch Active Pain Reports OR Recently Resolved (48h)
+            const { data: painData, error: painError } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('pain_reports')
+                .select('*, player:players!inner(id, name, jersey_number, short_code)')
+                .eq('player.team_id', teamId)
+                .or(`is_resolved.eq.false,resolved_at.gt.${twoDaysAgo}`)
+                .order('report_date', { ascending: false });
+
+            if (painError) throw painError;
+
+            // 2. Fetch Recent Illness from Daily Records (last 7 days)
+            // Note: Currently we assume illness is temporary and show records from last 7 days.
+            // Ideally we should have is_resolved flag for illness too.
+            const { data: illnessData, error: illnessError } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('daily_records')
+                .select('id, record_date, feedback, player:players!inner(id, name, jersey_number, short_code)')
+                .eq('player.team_id', teamId)
+                .gte('record_date', sevenDaysAgoStr) // Last 7 days
+                .not('feedback', 'is', null)
+                .order('record_date', { ascending: false });
+
+            if (illnessError) throw illnessError;
+
+            // Filter daily records that actually have illness tag or doctor note
+            const illnessReports = (illnessData || []).reduce((acc: any[], r) => {
+                if (!r.feedback) return acc;
+
+                const illMatch = r.feedback.match(/\[生病: (.*?)\] (.*?)(?=\n\n|$)/s);
+                const docMatch = r.feedback.match(/\[醫囑\] (.*?)(?=\n\n|$)/s);
+
+                if (illMatch) {
+                    acc.push({
+                        id: `ill-${r.id}`, // Virtual ID
+                        report_date: r.record_date,
+                        player: r.player,
+                        body_part: illMatch[1], // e.g. "感冒" - direct Use Chinese label
+                        pain_level: 0,
+                        description: illMatch[2], // e.g. "流鼻水" - description only
+                        doctor_note: docMatch ? docMatch[1] : null,
+                        type: 'illness',
+                        is_resolved: false,
+                    });
+                } else if (docMatch) {
+                    // Case: Doctor note only (no illness tag)
+                    acc.push({
+                        id: `doc-${r.id}`,
+                        report_date: r.record_date,
+                        player: r.player,
+                        body_part: '醫囑',
+                        pain_level: 0,
+                        description: '',
+                        doctor_note: docMatch[1],
+                        type: 'illness', // Treat as illness/medical type
+                        is_resolved: false,
+                    });
+                }
+
+                return acc;
+            }, []);
+
+            // Merge and sort
+            const combined = [...(painData || []), ...illnessReports].sort((a, b) => {
+                return new Date(b.report_date).getTime() - new Date(a.report_date).getTime();
+            });
+
+            return combined;
+        },
+        enabled: !!teamId,
     });
 }
 

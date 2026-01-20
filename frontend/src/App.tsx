@@ -9,6 +9,7 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import TeamSetupPage from './pages/team/TeamSetupPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import PlayersPage from './pages/dashboard/PlayersPage';
+import BatchAddPlayersPage from './pages/dashboard/BatchAddPlayersPage';
 import NotificationsPage from './pages/dashboard/NotificationsPage';
 import PlayerLoginPage from './pages/player/PlayerLoginPage';
 import PlayerRecordPage from './pages/shared/PlayerRecordPage';
@@ -74,6 +75,10 @@ const router = createBrowserRouter([
       {
         path: 'players',
         element: <PlayersPage />,
+      },
+      {
+        path: 'players/add',
+        element: <BatchAddPlayersPage />,
       },
       {
         path: 'player/:playerId/:activeTab?',

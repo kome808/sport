@@ -210,6 +210,31 @@ export function usePlayerTodayRecord(playerId: string | undefined) {
     });
 }
 
+// ... (existing usePlayerTodayRecord)
+
+export function usePlayerRecordByDate(playerId: string | undefined, date: Date) {
+    const dateStr = date ? date.toISOString().split('T')[0] : null;
+
+    return useQuery({
+        queryKey: ['playerRecord', playerId, dateStr],
+        queryFn: async () => {
+            if (!playerId || !dateStr) return null;
+
+            const { data, error } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('daily_records')
+                .select('*')
+                .eq('player_id', playerId)
+                .eq('record_date', dateStr)
+                .limit(1);
+
+            if (error) throw error;
+            return (data?.[0] as DailyRecord) || null;
+        },
+        enabled: !!playerId && !!dateStr,
+    });
+}
+
 // ================================================
 // 取得球員歷史紀錄
 // ================================================
@@ -282,6 +307,7 @@ interface DailyRecordInput {
     muscle_soreness: number;
     srpe_score?: number;
     training_minutes?: number;
+    feedback?: string;
 }
 
 export function useSubmitDailyRecord() {
@@ -370,6 +396,33 @@ export function useSubmitPainReport() {
             queryClient.invalidateQueries({
                 queryKey: ['painReports', variables.player_id],
             });
+        },
+    });
+}
+
+export function useResolvePainReport() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ reportId }: { reportId: string }) => {
+            const { data, error } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('pain_reports')
+                .update({
+                    is_resolved: true,
+                    resolved_at: new Date().toISOString()
+                })
+                .eq('id', reportId)
+                .select();
+
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: () => {
+            // Invalidate all pain reports queries
+            queryClient.invalidateQueries({ queryKey: ['painReports'] });
+            // Also invalidate team pain reports for dashboard
+            queryClient.invalidateQueries({ queryKey: ['teamActivePainReports'] });
         },
     });
 }
