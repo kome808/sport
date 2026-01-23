@@ -694,7 +694,7 @@ export function useUpdateTeamCoachInvitation() {
 
             if (error) throw error;
         },
-        onSuccess: (_, variables) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['teams'] });
         },
     });

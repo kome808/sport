@@ -31,7 +31,7 @@ vi.mock('@/lib/supabase', () => ({
             upsert: vi.fn(),
         })),
         rpc: vi.fn(),
-        schema: vi.fn(function () { return this; }),
+        schema: vi.fn(function (this: any) { return this; }),
     },
     SCHEMA_NAME: 'public',
 }));

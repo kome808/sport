@@ -142,21 +142,23 @@ body {
 }
 
 /* ========== 狀態等級 Utility ========== */
-@utility bg-status-high {
-  background-color: var(--color-status-high);
+/* ========== 狀態等級 Utility (Standard CSS Override) ========== */
+.bg-status-high {
+  background-color: #EF4F3B !important;
 }
 
-@utility bg-status-med {
-  background-color: var(--color-status-med);
+.bg-status-med {
+  background-color: #EFB954 !important;
 }
 
-@utility bg-status-low {
-  background-color: var(--color-status-low);
+.bg-status-low {
+  background-color: #53EF8B !important;
 }
 
-@utility bg-risk-black {
-  background-color: var(--color-risk-black);
+.bg-risk-black {
+  background-color: #606266 !important;
 }
+
 
 /* Compatibility with Shadcn */
 @theme inline {
@@ -213,6 +215,15 @@ body {
   --destructive-foreground: #FFFFFF;
   --accent: #F1F1F2;
   --accent-foreground: #4B465C;
+
+  /* Status Colors (Vuexy Mappings) */
+  --color-status-high: #EF4F3B;
+  --color-status-high-dark: #921C1C;
+  --color-status-med: #EFB954;
+  --color-status-med-dark: #916A1B;
+  --color-status-low: #53EF8B;
+  --color-status-low-dark: #1A703F;
+  --color-risk-black: #606266;
 }
 
 /* Layer Base Overrides for Shadcn Components */

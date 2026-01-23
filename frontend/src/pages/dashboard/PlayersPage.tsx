@@ -20,7 +20,7 @@ import { useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
     DropdownMenu,
@@ -60,12 +60,7 @@ import {
     useUpdatePlayer
 } from '@/hooks/useTeam';
 
-const riskBadgeVariants = {
-    green: 'default',
-    yellow: 'secondary',
-    red: 'destructive',
-    black: 'destructive',
-} as const;
+
 
 export default function PlayersPage() {
     const { teamSlug } = useParams<{ teamSlug: string }>();

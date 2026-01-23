@@ -136,7 +136,7 @@ export function TrendChart({ playerId, days = 14 }: TrendChartProps) {
     };
 
     // 自訂 Tooltip
-    const CustomTooltip = ({ id, value, color, data }: any) => (
+    const CustomTooltip = ({ id: _id, value, color, data }: any) => (
         <div className="bg-white p-3 shadow-lg rounded-lg border border-slate-100 text-xs">
             <div className="font-bold mb-1 text-slate-700">{data.date}</div>
             <div className="flex items-center gap-2 mb-1">

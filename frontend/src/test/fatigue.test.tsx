@@ -16,10 +16,10 @@ describe('Fatigue Monitoring Tests', () => {
                 min={0}
                 max={2.0}
                 zones={[
-                    { min: 0, max: 0.8, color: "bg-green-500", label: "Low" },
-                    { min: 0.8, max: 1.3, color: "bg-blue-500", label: "Optimal" },
-                    { min: 1.3, max: 1.5, color: "bg-yellow-500", label: "Warning" },
-                    { min: 1.5, max: 2.0, color: "bg-red-500", label: "High" },
+                    { max: 0.8, color: "bg-green-500", label: "Low" },
+                    { max: 1.3, color: "bg-blue-500", label: "Optimal" },
+                    { max: 1.5, color: "bg-yellow-500", label: "Warning" },
+                    { max: 2.0, color: "bg-red-500", label: "High" },
                 ]}
                 label="ACWR"
                 unit=""
