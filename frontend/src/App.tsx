@@ -1,11 +1,17 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { createBrowserRouter, RouterProvider, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
+import { supabase, SCHEMA_NAME } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 // 頁面元件
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import AuthCallbackPage from './pages/auth/AuthCallbackPage';
 import TeamSetupPage from './pages/team/TeamSetupPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import PlayersPage from './pages/dashboard/PlayersPage';
@@ -17,6 +23,8 @@ import PlayerReportPage from './pages/player/PlayerReportPage';
 import InvitationPage from './pages/team/InvitationPage';
 import TeamSettingsPage from './pages/team/TeamSettingsPage';
 import TeamLoginPage from './pages/team/TeamLoginPage';
+import CoachInvitationPage from './pages/team/CoachInvitationPage';
+import TutorialPage from './pages/team/TutorialPage';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
@@ -51,8 +59,20 @@ const router = createBrowserRouter([
     element: <ForgotPasswordPage />,
   },
   {
+    path: '/reset-password',
+    element: <ResetPasswordPage />,
+  },
+  {
+    path: '/auth/callback',
+    element: <AuthCallbackPage />,
+  },
+  {
     path: '/team/setup',
     element: <TeamSetupPage />,
+  },
+  {
+    path: '/invite/coach/:teamSlug',
+    element: <CoachInvitationPage />,
   },
   {
     path: '/invite/:teamSlug',
@@ -61,6 +81,11 @@ const router = createBrowserRouter([
   {
     path: '/:teamSlug/login',
     element: <TeamLoginPage />,
+  },
+
+  {
+    path: '/dashboard',
+    element: <DashboardRedirect />,
   },
 
   // 教練端 - 儀表板
@@ -92,6 +117,10 @@ const router = createBrowserRouter([
         path: 'settings',
         element: <TeamSettingsPage />,
       },
+      {
+        path: 'tutorial',
+        element: <TutorialPage />,
+      },
     ],
   },
 
@@ -109,6 +138,53 @@ const router = createBrowserRouter([
     element: <PlayerRecordPage mode="player" />,
   },
 ]);
+
+/**
+ * 自動導向組件
+ * 當使用者存取 /dashboard 時，自動尋找其所屬球隊並導向
+ */
+function DashboardRedirect() {
+  const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  useEffect(() => {
+    if (authLoading || isRedirecting) return;
+
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    const performRedirect = async () => {
+      setIsRedirecting(true);
+      try {
+        const { data: teams } = await supabase
+          .schema(SCHEMA_NAME)
+          .from('teams')
+          .select('slug')
+          .limit(1);
+
+        if (teams && teams.length > 0) {
+          navigate(`/${teams[0].slug}`, { replace: true });
+        } else {
+          navigate('/team/setup', { replace: true });
+        }
+      } catch (err) {
+        console.error('Redirect failed:', err);
+        navigate('/team/setup', { replace: true });
+      }
+    };
+
+    performRedirect();
+  }, [user, authLoading, navigate, isRedirecting]);
+
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+    </div>
+  );
+}
 
 function App() {
   return (

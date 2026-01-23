@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 py-4">
                         {error && (
                             <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
                                 {error}
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
                             )}
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col gap-4">
+                    <CardFooter className="flex flex-col gap-4 pb-6 pt-0">
                         <Button type="submit" className="w-full bg-[#7367F0] text-white hover:bg-[#5E50EE] border-0" disabled={isLoading}>
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             發送重設連結

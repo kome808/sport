@@ -144,11 +144,27 @@ export function useAuth() {
         return { success: !error, error };
     }, []);
 
+    // Google OAuth 登入
+    const signInWithGoogle = useCallback(async () => {
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`
+                }
+            });
+            return { success: !error, error };
+        } catch (e: any) {
+            return { success: false, error: { message: e.message } as AuthError };
+        }
+    }, []);
+
     return {
         ...state,
         isAuthenticated: !!state.user,
         signIn,
         signUp,
         signOut,
+        signInWithGoogle,
     };
 }

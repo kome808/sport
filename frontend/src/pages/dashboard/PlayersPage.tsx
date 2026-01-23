@@ -14,6 +14,7 @@ import {
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
+    Copy,
 } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -84,6 +85,8 @@ export default function PlayersPage() {
     // 狀態
     const [editingPlayer, setEditingPlayer] = useState<any>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false);
+    const [activeCopyUrl, setActiveCopyUrl] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
     // 篩選與排序球員
@@ -301,7 +304,7 @@ export default function PlayersPage() {
                             size="sm"
                             variant="destructive"
                             onClick={() => setIsDeleteDialogOpen(true)}
-                            className="gap-2 shadow-lg shadow-destructive/20 rounded-xl font-black h-10 px-4"
+                            className="gap-2 shadow-lg shadow-destructive/20 rounded-xl font-black h-10 px-4 !bg-[#EA5455] !text-white hover:!bg-[#EA5455]/90"
                         >
                             <Trash2 className="h-4 w-4" />
                             刪除球員
@@ -420,30 +423,48 @@ export default function PlayersPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-56 rounded-2xl shadow-2xl border-muted/50 p-2 backdrop-blur-lg bg-white/95">
                                                     <DropdownMenuItem asChild>
-                                                        <Link to={`/${teamSlug}/player/${player.short_code || player.id}`} className="cursor-pointer rounded-xl font-black text-black py-3 text-base">
-                                                            <Users className="mr-3 h-5 w-5 text-primary" />
+                                                        <Link to={`/${teamSlug}/player/${player.short_code || player.id}`} className="cursor-pointer rounded-xl font-bold text-black py-3 text-sm flex items-center">
+                                                            <Users className="mr-3 h-4 w-4 text-primary" />
                                                             詳細數據
                                                         </Link>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
-                                                        className="cursor-pointer rounded-xl font-black text-black py-3 text-base"
+                                                        className="cursor-pointer rounded-xl font-bold text-black py-3 text-sm flex items-center"
+                                                        onClick={() => {
+                                                            // 改為複製球員首頁連結
+                                                            const url = `${window.location.origin}/${teamSlug}/p/${player.short_code || player.id}`;
+                                                            setActiveCopyUrl(url);
+                                                            navigator.clipboard.writeText(url).then(() => {
+                                                                setIsCopyDialogOpen(true);
+                                                            }).catch(err => {
+                                                                console.error('Copy failed', err);
+                                                                // Fallback if copy fails, still show dialog so user can manual copy
+                                                                setIsCopyDialogOpen(true);
+                                                            });
+                                                        }}
+                                                    >
+                                                        <Copy className="mr-3 h-4 w-4 text-primary" />
+                                                        球員回報網址
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="cursor-pointer rounded-xl font-bold text-black py-3 text-sm flex items-center"
                                                         onClick={() => {
                                                             setEditingPlayer(player);
                                                             setIsEditDialogOpen(true);
                                                         }}
                                                     >
-                                                        <Edit className="mr-3 h-5 w-5 text-primary" />
+                                                        <Edit className="mr-3 h-4 w-4 text-primary" />
                                                         編輯資料
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator className="my-2 bg-muted/50 h-0.5" />
                                                     <DropdownMenuItem
-                                                        className="text-destructive cursor-pointer hover:bg-destructive/10 rounded-xl font-black py-3 text-base"
+                                                        className="text-destructive cursor-pointer hover:bg-destructive/10 rounded-xl font-bold py-3 text-sm flex items-center"
                                                         onClick={() => {
                                                             setSelectedPlayerIds([player.id]);
                                                             setIsDeleteDialogOpen(true);
                                                         }}
                                                     >
-                                                        <Trash2 className="mr-3 h-5 w-5" />
+                                                        <Trash2 className="mr-3 h-4 w-4" />
                                                         移除球員
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
@@ -514,67 +535,122 @@ export default function PlayersPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* 刪除確認彈窗 */}
-            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <DialogContent className="rounded-[40px] border-none shadow-3xl p-10 max-w-lg bg-white overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-2 bg-destructive" />
-                    <DialogHeader className="space-y-4">
-                        <DialogTitle className="flex items-center gap-4 text-3xl font-black text-black">
-                            <div className="bg-destructive/10 p-3 rounded-[24px]">
-                                <AlertTriangle className="h-10 w-10 text-destructive" />
-                            </div>
-                            確認移除球員？
-                        </DialogTitle>
-                        <DialogDescription className="text-black font-bold text-xl leading-relaxed">
-                            您正打算將選取的 <span className="text-destructive underline underline-offset-4">{selectedPlayerIds.length} 位</span> 球員狀態變更為「非活動」。
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="bg-destructive/5 p-8 rounded-[32px] border-2 border-destructive/10 shadow-inner my-8">
-                        <h4 className="text-black font-black text-lg mb-4 flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                            重要提示
-                        </h4>
-                        <ul className="text-base text-black font-black space-y-4 list-none pl-1">
-                            <li className="flex items-start gap-3">
-                                <CheckCircle2 className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
-                                這些成員將立即失去平台存取權限
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <CheckCircle2 className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
-                                其個人頁面將從當前名單中隱藏
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <CheckCircle2 className="h-6 w-6 text-primary shrink-0 mt-0.5" />
-                                所有歷史數據與紀錄將完整封存於後台
-                            </li>
-                        </ul>
+            {/* 複製連結確認彈窗 */}
+            <Dialog open={isCopyDialogOpen} onOpenChange={setIsCopyDialogOpen}>
+                <DialogContent className="sm:max-w-md rounded-[24px] p-0 border-none shadow-2xl overflow-hidden bg-white">
+                    <div className="bg-green-50 px-8 pt-8 pb-6 border-b border-green-100">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-black text-black flex items-center gap-3">
+                                <div className="bg-green-100 p-2 rounded-2xl">
+                                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                </div>
+                                連結已複製！
+                            </DialogTitle>
+                            <DialogDescription className="text-black/60 font-bold text-lg mt-2">
+                                球員回報網址已複製到剪貼簿。
+                            </DialogDescription>
+                        </DialogHeader>
                     </div>
 
-                    <DialogFooter className="grid grid-cols-2 gap-4">
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setIsDeleteDialogOpen(false);
-                                if (selectedPlayerIds.length === 1 && !filteredPlayers.find(p => p.id === selectedPlayerIds[0])) {
-                                    setSelectedPlayerIds([]);
-                                }
-                            }}
-                            className="border-2 border-gray-300 text-black font-black h-16 rounded-[24px] hover:bg-gray-100 transition-all text-xl"
-                        >
-                            暫時不要
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={handleBatchDelete}
-                            className="bg-destructive text-white font-black h-16 rounded-[24px] shadow-2xl shadow-destructive/40 text-xl transition-all active:scale-95 ring-destructive ring-offset-4 focus:ring-4 hover:bg-destructive/90"
-                        >
-                            確認執行
-                        </Button>
-                    </DialogFooter>
+                    <div className="p-8 space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-sm font-black text-black/40 uppercase tracking-widest pl-1">連結網址</label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    readOnly
+                                    value={activeCopyUrl}
+                                    style={{ color: '#000000', opacity: 1, WebkitTextFillColor: '#000000' }}
+                                    className="flex-1 border-2 border-gray-200 text-black font-bold text-base h-12 rounded-xl bg-gray-50 px-3 outline-none focus:border-primary/50 w-full"
+                                />
+                                <Button
+                                    size="icon"
+                                    variant="outline"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(activeCopyUrl);
+                                        // Optional: Button feedback, but main action is done
+                                    }}
+                                    className="h-12 w-12 rounded-xl border-2 border-gray-200 hover:bg-gray-50 shrink-0"
+                                >
+                                    <Copy className="h-5 w-5 text-black/60" />
+                                </Button>
+                            </div>
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                onClick={() => setIsCopyDialogOpen(false)}
+                                className="rounded-xl h-12 font-black shadow-lg shadow-primary/20 text-base w-full bg-black text-white hover:bg-black/90"
+                            >
+                                關閉
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* 刪除確認彈窗 */}
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-md rounded-[24px] p-0 border-none shadow-2xl overflow-hidden bg-white">
+                    <div className="bg-destructive/5 px-8 pt-8 pb-6 border-b border-destructive/10">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-black text-black flex items-center gap-3">
+                                <div className="bg-destructive/10 p-2 rounded-2xl">
+                                    <AlertTriangle className="h-6 w-6 text-destructive" />
+                                </div>
+                                確認刪除球員？
+                            </DialogTitle>
+                            <DialogDescription className="text-black/60 font-bold text-lg mt-2">
+                                您即將永久刪除 <span className="text-destructive font-black">{selectedPlayerIds.length} 位</span> 球員的資料。
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+
+                    <div className="p-8 space-y-6">
+                        <div className="bg-red-50 p-5 rounded-2xl border border-red-100">
+                            <h4 className="text-destructive font-black text-base mb-3 flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4" />
+                                警告：此動作無法復原
+                            </h4>
+                            <ul className="space-y-2">
+                                <li className="flex items-start gap-2 text-sm font-bold text-black/70">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
+                                    球員資料將從系統中永久移除
+                                </li>
+                                <li className="flex items-start gap-2 text-sm font-bold text-black/70">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
+                                    該球員將無法再登入平台
+                                </li>
+                                <li className="flex items-start gap-2 text-sm font-bold text-black/70">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
+                                    所有的訓練數據與傷病紀錄將一併刪除
+                                </li>
+                            </ul>
+                        </div>
+
+                        <DialogFooter className="grid grid-cols-2 gap-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setIsDeleteDialogOpen(false);
+                                    if (selectedPlayerIds.length === 1 && !filteredPlayers.find(p => p.id === selectedPlayerIds[0])) {
+                                        setSelectedPlayerIds([]);
+                                    }
+                                }}
+                                className="rounded-xl h-12 font-black border-2 border-gray-200 text-black hover:bg-gray-50 text-base w-full"
+                            >
+                                取消
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={handleBatchDelete}
+                                className="rounded-xl h-12 font-black shadow-lg shadow-destructive/20 text-base w-full !bg-[#EA5455] !text-white hover:!bg-[#EA5455]/90"
+                            >
+                                確認刪除
+                            </Button>
+                        </DialogFooter>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
     );
 }
-

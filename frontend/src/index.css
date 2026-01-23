@@ -207,6 +207,7 @@ body {
   --radius: 0.375rem;
 
   /* Popover 背景色 (修正透明選單問題) */
+  --popover: #FFFFFF;
   --popover-foreground: #4B465C;
   --destructive: #EA5455;
   --destructive-foreground: #FFFFFF;

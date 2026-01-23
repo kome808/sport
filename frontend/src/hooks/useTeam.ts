@@ -409,7 +409,7 @@ export function useBatchAddPlayers() {
             const { data, error } = await supabase
                 .schema(SCHEMA_NAME)
                 .from('players')
-                .insert(players.map(p => ({ ...p, team_id })))
+                .insert(players.map(p => ({ ...p, team_id, password_hash: '1234', is_claimed: false })))
                 .select();
 
             if (error) throw error;
@@ -671,7 +671,73 @@ export function useTeamActivePainReports(teamId: string | undefined) {
 
             return combined;
         },
-        enabled: !!teamId,
     });
 }
 
+// ================================================
+// 更新球隊教練邀請設定
+// ================================================
+
+export function useUpdateTeamCoachInvitation() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ teamId, code, enabled }: { teamId: string, code: string, enabled: boolean }) => {
+            const { error } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('teams')
+                .update({
+                    coach_invitation_code: code,
+                    is_coach_invitation_enabled: enabled
+                })
+                .eq('id', teamId);
+
+            if (error) throw error;
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['teams'] });
+        },
+    });
+}
+export function useTeamCoaches(teamId: string | undefined) {
+    return useQuery({
+        queryKey: ['teamCoaches', teamId],
+        queryFn: async () => {
+            if (!teamId) return [];
+            const { data, error } = await supabase.rpc('get_team_coaches', { team_id: teamId });
+            if (error) throw error;
+            return (data || []) as (import('@/types').Coach & { role: 'owner' | 'admin' | 'member', joined_at: string })[];
+        },
+        enabled: !!teamId,
+    });
+}
+export function useRemoveCoach() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ teamId, coachId }: { teamId: string, coachId: string }) => {
+            const { error } = await supabase.rpc('remove_team_coach', { team_id: teamId, target_coach_id: coachId });
+            if (error) throw error;
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['teamCoaches', variables.teamId] });
+        },
+    });
+}
+export function useJoinTeamAsCoach() {
+    return useMutation({
+        mutationFn: async ({ code, name }: { code: string, name?: string }) => {
+            const { data, error } = await supabase.rpc('join_team_as_coach', { invitation_code: code, coach_name: name });
+            if (error) throw error;
+            return data;
+        },
+    });
+}
+export function useValidateCoachInvitation() {
+    return useMutation({
+        mutationFn: async (code: string) => {
+            const { data, error } = await supabase.rpc('validate_coach_invitation_code', { code });
+            if (error) throw error;
+            return data?.[0];
+        },
+    });
+}

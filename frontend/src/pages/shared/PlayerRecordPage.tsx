@@ -71,17 +71,17 @@ export default function PlayerRecordPage({ mode }: PlayerRecordPageProps) {
             if (player && (!session || session.playerId !== player.id)) {
                 // 如果是用 short_code 進來的，session.playerId 是 UUID，player.id 也是 UUID，應該會匹配
                 // 無論如何，如果沒登入，就踢去登入頁
-                navigate(`/${teamSlug}/login`);
+                navigate(`/${teamSlug}/p/${playerId}/login`);
             } else if (!player && !playerLoading && !session) {
                 // 找不到球員且沒 Session
-                navigate(`/${teamSlug}/login`);
+                navigate(`/${teamSlug}/p/${playerId}/login`);
             }
         }
-    }, [mode, session, sessionLoading, player, playerLoading, teamSlug, navigate]);
+    }, [mode, session, sessionLoading, player, playerLoading, teamSlug, navigate, playerId]);
 
     const handleLogout = () => {
         logout();
-        navigate(`/${teamSlug}/login`);
+        navigate(`/${teamSlug}/p/${playerId}/login`);
     };
 
     // 載入中

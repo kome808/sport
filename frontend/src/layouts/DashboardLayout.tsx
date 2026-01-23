@@ -12,6 +12,7 @@ import {
     LogOut,
     Menu,
     ChevronRight,
+    BookOpen,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -57,11 +58,16 @@ const menuItems = [
         icon: Settings,
         path: '/settings',
     },
+    {
+        title: '使用教學 Tutorial',
+        icon: BookOpen,
+        path: '/tutorial',
+    },
 ];
 
 export default function DashboardLayout() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
-    const { data: teamData } = useTeam(teamSlug || '');
+    const { data: teamData, isLoading: isTeamLoading } = useTeam(teamSlug || '');
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -105,11 +111,11 @@ export default function DashboardLayout() {
             {/* Logo 區域 */}
             <div className="flex h-16 items-center gap-3 border-b px-6">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-lg">
-                    ST
+                    SR
                 </div>
                 <div className="flex flex-col">
-                    <span className="font-semibold text-sm text-slate-900">運動訓練平台</span>
-                    <span className="text-xs text-slate-500">Sports Training</span>
+                    <span className="font-semibold text-sm text-slate-900">SportRepo</span>
+                    <span className="text-xs text-slate-500">選手訓練負荷管理平台</span>
                 </div>
             </div>
 
@@ -124,8 +130,12 @@ export default function DashboardLayout() {
                         )}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm truncate text-slate-900">{teamData?.name || '載入中...'}</p>
-                        <p className="text-xs font-medium text-slate-500">/{teamSlug}</p>
+                        <p className="font-bold text-sm truncate text-slate-900">
+                            {isTeamLoading ? '載入中...' : (teamData?.name || '無選取球隊')}
+                        </p>
+                        <p className="text-xs font-medium text-slate-500">
+                            {teamSlug ? `/${teamSlug}` : '/---'}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -206,7 +216,7 @@ export default function DashboardLayout() {
                 </Sheet>
 
                 {/* 主內容區 */}
-                <div className="lg:pl-[260px] transition-all duration-300">
+                <div className="lg:pl-[260px] transition-all duration-300 min-h-screen bg-slate-50">
                     {/* 頂部導航 - 懸浮卡片風格 */}
                     <header className="sticky top-0 z-30 mx-4 my-2 rounded-lg bg-white/80 backdrop-blur-md shadow-sm h-16 flex items-center gap-4 px-4 lg:mx-6 lg:px-6">
                         {/* 手機版選單按鈕 */}

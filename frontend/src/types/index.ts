@@ -39,6 +39,8 @@ export interface Team {
     settings?: Record<string, unknown>;
     invitation_code?: string;
     is_invitation_enabled?: boolean;
+    coach_invitation_code?: string;
+    is_coach_invitation_enabled?: boolean;
     created_at: string;
     updated_at: string;
 }

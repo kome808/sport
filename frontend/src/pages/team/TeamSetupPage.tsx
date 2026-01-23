@@ -12,7 +12,7 @@ import { Loader2, Upload, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase, SCHEMA_NAME } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -143,7 +143,7 @@ export default function TeamSetupPage() {
                         </CardDescription>
                     </CardHeader>
                     <form onSubmit={handleSubmit(onSubmit)}>
-                        <CardContent className="space-y-6">
+                        <CardContent className="space-y-6 py-4">
                             {/* 錯誤訊息 */}
                             {errorMessage && (
                                 <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
@@ -235,12 +235,13 @@ export default function TeamSetupPage() {
                                     <p className="text-sm text-destructive">{errors.sportType.message}</p>
                                 )}
                             </div>
-
+                        </CardContent>
+                        <CardFooter className="pb-6 pt-0">
                             <Button type="submit" className="w-full bg-[#7367F0] text-white hover:bg-[#5E50EE] border-0" disabled={isLoading}>
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 建立球隊
                             </Button>
-                        </CardContent>
+                        </CardFooter>
                     </form>
                 </Card>
             </div>

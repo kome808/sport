@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { usePlayer, useSubmitDailyRecord, useSubmitPainReport, usePlayerRecordByDate, usePlayerPainReports, useResolvePainReport } from '@/hooks/usePlayer';
+import { usePlayer, useSubmitDailyRecord, useSubmitPainReport, usePlayerRecordByDate, usePlayerPainReports, useResolvePainReport, usePlayerSession } from '@/hooks/usePlayer';
 import BodyMapSelector from '@/components/player/BodyMapSelector';
 import { type PainStatus } from '@/components/records/PainStatusDialog';
 import { BODY_PATHS } from '@/components/player/BodyMapPaths';
@@ -46,6 +46,19 @@ export default function PlayerReportPage() {
     const { teamSlug, playerId } = useParams<{ teamSlug: string; playerId: string }>();
     const navigate = useNavigate();
     const { data: player, isLoading } = usePlayer(playerId);
+    const { session, isLoading: sessionLoading } = usePlayerSession();
+
+    // 驗證登入
+    useEffect(() => {
+        if (!sessionLoading) {
+            if (!session) {
+                navigate(`/${teamSlug}/p/${playerId}/login`);
+            } else if (player && session.playerId !== player.id) {
+                // 如果已登入但不是這個球員（或 short_code 轉換還沒對上），也踢回去
+                navigate(`/${teamSlug}/p/${playerId}/login`);
+            }
+        }
+    }, [session, sessionLoading, player, teamSlug, playerId, navigate]);
 
     // Hooks for submission
     const submitDaily = useSubmitDailyRecord();

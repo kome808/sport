@@ -79,9 +79,9 @@ export default function LandingPage() {
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-                            ST
+                            SR
                         </div>
-                        <span className="font-bold text-xl">運動訓練平台</span>
+                        <span className="font-bold text-xl">SportRepo</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Link to="/login">
@@ -103,8 +103,8 @@ export default function LandingPage() {
                             🚀 專為基層運動球隊打造
                         </Badge>
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                            科學化訓練管理
-                            <span className="text-primary block mt-2">守護每位球員健康</span>
+                            SportRepo
+                            <span className="text-primary block mt-2">選手訓練負荷管理平台</span>
                         </h1>
                         <p className="text-lg md:text-xl text-muted-foreground mb-8" style={{ maxWidth: '42rem', marginInline: 'auto' }}>
                             結合運動科學與現代技術，提供訓練負荷監控、疲勞管理、傷病預警等功能，幫助教練做出更好的訓練決策。
@@ -220,16 +220,26 @@ export default function LandingPage() {
             {/* Footer */}
             <footer className="border-t py-12">
                 <div className="container mx-auto px-4">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-                                ST
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
+                                    SR
+                                </div>
+                                <span className="font-semibold text-lg">SportRepo</span>
                             </div>
-                            <span className="font-semibold">運動訓練平台</span>
+                            <p className="text-sm text-muted-foreground">選手訓練負荷管理平台</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                            © 2026 Sports Training Platform. All rights reserved.
-                        </p>
+
+                        <div className="flex flex-col gap-2 text-sm text-muted-foreground md:text-right">
+                            <a href="mailto:sportrepotw@gmail.com" className="hover:text-primary transition-colors">
+                                信箱: sportrepotw@gmail.com
+                            </a>
+                            <a href="https://www.sportrepo.com" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                                網址: www.sportrepo.com
+                            </a>
+                            <p className="mt-2">© 2026 SportRepo. All rights reserved.</p>
+                        </div>
                     </div>
                 </div>
             </footer>

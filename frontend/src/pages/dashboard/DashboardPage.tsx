@@ -49,7 +49,7 @@ export default function DashboardPage() {
     const [selectedPeriod, setSelectedPeriod] = useState('7d');
 
     // 取得球隊資料
-    const { data: team } = useTeam(teamSlug || '');
+    const { data: team, isLoading: teamLoading } = useTeam(teamSlug || '');
     const teamId = team?.id;
 
     // 取得統計資料
@@ -147,7 +147,40 @@ export default function DashboardPage() {
     };
 
     // 載入中狀態
-    if (statsLoading || fatigueLoading || !teamId) {
+    if (teamLoading) {
+        return (
+            <div className="flex h-[50vh] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    // 如果找不到球隊且非載入中，顯示錯誤或引導
+    if (!team) {
+        return (
+            <div className="flex flex-col h-[60vh] items-center justify-center text-center px-4">
+                <div className="h-20 w-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                    <AlertTriangle className="h-10 w-10 text-slate-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">找不到球隊資料</h2>
+                <p className="text-slate-500 max-w-md mb-8">
+                    網址路徑 <code className="bg-slate-100 px-1 py-0.5 rounded">/{teamSlug}</code> 無法對應到任何現有球隊。<br />
+                    請確認網址是否正確，或是您尚未建立球隊。
+                </p>
+                <div className="flex gap-4">
+                    <Button asChild variant="outline">
+                        <Link to="/">返回首頁</Link>
+                    </Button>
+                    <Button asChild>
+                        <Link to="/team/setup">建立球隊</Link>
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    // 如果球隊已找到但統計數據還在載入
+    if (statsLoading || fatigueLoading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -177,54 +210,36 @@ export default function DashboardPage() {
     return (
         <div className="space-y-8 pb-12">
 
-            {/* Top Action Bar */}
-            <div className="flex items-center justify-end gap-3 mb-6">
-                {/* 測試用按鈕 - 僅在 doraemon-baseball 顯示 */}
-                {teamSlug === 'doraemon-baseball' && (
-                    <div className="flex gap-2">
+            {/* Top Action Bar - More subtle for admin actions */}
+            {teamSlug === 'doraemon-baseball' && (
+                <div className="flex justify-end gap-2 px-2">
+                    <div className="bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50 flex gap-2">
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             disabled={isGenerating || isClearing}
                             onClick={() => setIsClearConfirmOpen(true)}
-                            className={cn(
-                                "rounded-lg font-bold transition-all shadow-sm border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800",
-                                isClearing && "opacity-80"
-                            )}
+                            className="rounded-xl font-bold text-xs h-9 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
                         >
-                            {isClearing ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Trash2 className="mr-2 h-4 w-4" />
-                            )}
-                            {isClearing ? '清除中...' : '清除測試數據'}
+                            {isClearing ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                            清除測試數據
                         </Button>
-
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             disabled={isGenerating || isClearing}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsConfirmOpen(true);
-                            }}
+                            onClick={() => setIsConfirmOpen(true)}
                             className={cn(
-                                "rounded-lg font-bold transition-all shadow-sm border-slate-200 text-slate-700",
-                                isSuccess ? "border-green-500 text-green-600 bg-green-50" : "hover:bg-slate-50"
+                                "rounded-xl font-bold text-xs h-9 transition-all",
+                                isSuccess ? "text-green-600 bg-green-50" : "text-slate-400 hover:text-primary hover:bg-primary/5"
                             )}
                         >
-                            {isGenerating ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : isSuccess ? (
-                                <Check className="mr-2 h-4 w-4" />
-                            ) : (
-                                <Database className="mr-2 h-4 w-4" />
-                            )}
+                            {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : isSuccess ? <Check className="h-3 w-3 mr-1" /> : <Database className="h-3 w-3 mr-1" />}
                             {isGenerating ? '生成中...' : isSuccess ? '已更新' : '填補測試數據'}
                         </Button>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* 統計卡片 - 增加間距與陰影 */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -355,9 +370,10 @@ export default function DashboardPage() {
                                                 className="group block w-32 sm:w-36"
                                             >
                                                 <div className={cn(
-                                                    "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all shadow-sm border border-white/20 relative group-hover:scale-110 group-hover:rotate-2 group-hover:shadow-lg z-10"
+                                                    "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all shadow-md border border-white/20 relative group-hover:scale-105 group-hover:shadow-lg z-10",
+                                                    "bg-status-high"
                                                 )}
-                                                    style={{ backgroundColor: '#EF4F3B', boxShadow: '0 10px 15px -3px rgba(239, 79, 59, 0.4)' }}
+                                                    style={{ boxShadow: '0 8px 20px -5px var(--color-status-high)' }}
                                                 >
                                                     <div className="text-3xl font-black opacity-10 absolute top-2 right-3 text-white">!</div>
 
@@ -442,7 +458,7 @@ export default function DashboardPage() {
 
                                             // Row styling for resolved
                                             const rowClass = isAllResolved
-                                                ? "bg-green-50/30 hover:bg-green-50/50 transition-colors"
+                                                ? "bg-green-50 hover:bg-green-100/50 transition-colors"
                                                 : "hover:bg-slate-50/50 transition-colors";
 
                                             return (
@@ -450,17 +466,27 @@ export default function DashboardPage() {
                                                     <td className="py-3 px-6 font-medium text-slate-700 align-top">
                                                         {format(new Date(latestReport.report_date), 'MM/dd')}
                                                         {isAllResolved && (
-                                                            <div className="text-[10px] text-green-600 font-bold mt-1">已解決</div>
+                                                            <Badge variant="secondary" className="mt-1 bg-green-100 text-green-700 hover:bg-green-100 border-green-200 text-[10px] px-1 py-0 h-5">
+                                                                已恢復
+                                                            </Badge>
                                                         )}
                                                     </td>
-                                                    <td className="py-3 px-6 font-bold text-slate-900 align-top">
+                                                    <td className="py-3 px-6 font-bold text-black align-top">
                                                         <Link to={`/${teamSlug}/player/${group.player.short_code || group.player.id}`} className="hover:text-primary hover:underline">
                                                             {group.player.name}
                                                         </Link>
                                                     </td>
                                                     <td className="py-3 px-6 text-slate-600 align-top">
                                                         <div className="flex flex-col gap-1">
-                                                            {group.reports.map((r: any) => (
+                                                            {Object.values(
+                                                                group.reports.reduce((acc: any, report: any) => {
+                                                                    const existing = acc[report.body_part];
+                                                                    if (!existing || new Date(report.report_date) > new Date(existing.report_date)) {
+                                                                        acc[report.body_part] = report;
+                                                                    }
+                                                                    return acc;
+                                                                }, {})
+                                                            ).map((r: any) => (
                                                                 <span key={r.id} className="inline-flex items-center">
                                                                     {r.type === 'illness' ? (
                                                                         <Badge variant="outline" className="mr-1 py-0 px-1.5 h-5 text-[10px] bg-orange-50 text-orange-600 border-orange-200">生病</Badge>
@@ -483,8 +509,19 @@ export default function DashboardPage() {
                                                     </td>
                                                     <td className="py-3 px-6 text-slate-500 max-w-xs align-top">
                                                         <div className="flex flex-col gap-2">
-                                                            {group.reports.map((r: any) => (
+                                                            {Object.values(
+                                                                group.reports.reduce((acc: any, report: any) => {
+                                                                    const existing = acc[report.body_part];
+                                                                    if (!existing || new Date(report.report_date) > new Date(existing.report_date)) {
+                                                                        acc[report.body_part] = report;
+                                                                    }
+                                                                    return acc;
+                                                                }, {})
+                                                            ).map((r: any) => (
                                                                 <div key={r.id} className="text-sm border-l-2 border-slate-200 pl-2">
+                                                                    <span className="text-xs font-bold text-slate-400 block mb-0.5">
+                                                                        {BODY_PART_MAP[r.body_part] || r.body_part}
+                                                                    </span>
                                                                     {r.description || '-'}
                                                                 </div>
                                                             ))}
@@ -492,9 +529,20 @@ export default function DashboardPage() {
                                                     </td>
                                                     <td className="py-3 px-6 text-slate-500 max-w-xs align-top">
                                                         <div className="flex flex-col gap-2">
-                                                            {group.reports.map((r: any) => (
+                                                            {Object.values(
+                                                                group.reports.reduce((acc: any, report: any) => {
+                                                                    const existing = acc[report.body_part];
+                                                                    if (!existing || new Date(report.report_date) > new Date(existing.report_date)) {
+                                                                        acc[report.body_part] = report;
+                                                                    }
+                                                                    return acc;
+                                                                }, {})
+                                                            ).map((r: any) => (
                                                                 r.doctor_note ? (
                                                                     <div key={r.id} className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                                                        <span className="text-xs font-bold text-blue-400 block mb-0.5">
+                                                                            {BODY_PART_MAP[r.body_part] || r.body_part}
+                                                                        </span>
                                                                         {r.doctor_note}
                                                                     </div>
                                                                 ) : null
@@ -575,21 +623,21 @@ export default function DashboardPage() {
                                     >
                                         <div
                                             className={cn(
-                                                "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all shadow-sm border border-black/5 relative group-hover:scale-110 group-hover:rotate-2 group-hover:shadow-lg z-10",
-                                                maxRisk === 0 ? "bg-slate-100 border-slate-200" : ""
+                                                "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all shadow-sm border border-black/5 relative group-hover:scale-105 group-hover:shadow-lg z-10",
+                                                maxRisk === 0 ? "bg-slate-100 border-slate-200" : "",
+                                                maxRisk === 3 && "bg-status-high text-white",
+                                                maxRisk === 2 && "bg-status-med text-slate-900",
+                                                maxRisk === 1 && "bg-status-low text-slate-900"
                                             )}
-                                            style={{
-                                                backgroundColor: maxRisk === 3 ? '#EF4F3B' :
-                                                    maxRisk === 2 ? '#EFB954' :
-                                                        maxRisk === 1 ? '#53EF8B' : undefined,
-                                                color: maxRisk === 3 ? '#FFFFFF' : '#1a1a1a'
-                                            }}
+                                            style={maxRisk > 0 ? {
+                                                boxShadow: `0 4px 12px -2px var(--color-status-${maxRisk === 3 ? 'high' : maxRisk === 2 ? 'med' : 'low'})`
+                                            } : undefined}
                                         >
                                             <span className={cn(
-                                                "font-bold text-center px-1 break-words leading-tight",
+                                                "font-bold text-center w-full px-1 truncate",
                                                 data.player.name.length > 3 ? "text-xs" : "text-sm",
                                                 maxRisk === 3 ? "text-white" :
-                                                    (maxRisk === 0) ? "text-slate-500" : "text-slate-900"
+                                                    (maxRisk === 0) ? "text-slate-500" : "text-black"
                                             )}>
                                                 {data.player.name}
                                             </span>

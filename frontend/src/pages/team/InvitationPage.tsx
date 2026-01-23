@@ -194,7 +194,7 @@ export default function InvitationPage() {
                         {teamSlug}
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pb-6">
                     {step === 1 && (
                         <form onSubmit={handleCodeSubmit(onCodeSubmit)} className="space-y-4">
                             <div className="space-y-2">
@@ -241,7 +241,7 @@ export default function InvitationPage() {
                                 </div>
                             </div>
 
-                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                                 {availablePlayers.map(player => (
                                     <Button
                                         key={player.id}

@@ -5,14 +5,14 @@
 
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { zhTW } from 'date-fns/locale';
-import { AlertCircle, CheckCircle2, Thermometer } from 'lucide-react';
+
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { usePlayerPainReports, usePlayerRecords, useResolvePainReport } from '@/hooks/usePlayer';
 import { BODY_PATHS } from '@/components/player/BodyMapPaths';
 import { PainStatusDialog, type PainStatus } from '@/components/records/PainStatusDialog';
@@ -90,12 +90,22 @@ export default function PainRecordList({ playerId }: PainRecordListProps) {
         setActiveStatusDialog(null);
     };
 
-    const combinedRecords = useMemo(() => {
+    const groupedRecords = useMemo(() => {
         const records: CombinedRecord[] = [];
 
         // 1. Process Pain Reports
         if (painReports) {
+            // Filter to keep only the latest report per body_part
+            const latestReportsMap = new Map<string, any>();
             painReports.forEach(r => {
+                const existing = latestReportsMap.get(r.body_part);
+                if (!existing || new Date(r.report_date) > new Date(existing.report_date)) {
+                    latestReportsMap.set(r.body_part, r);
+                }
+            });
+
+            // Push filtered reports
+            Array.from(latestReportsMap.values()).forEach(r => {
                 records.push({
                     id: `pain-${r.id}`,
                     date: new Date(r.report_date),
@@ -142,8 +152,24 @@ export default function PainRecordList({ playerId }: PainRecordListProps) {
             });
         }
 
-        // Sort by date desc
-        return records.sort((a, b) => b.date.getTime() - a.date.getTime());
+        // 3. Group by Date
+        const groups: Record<string, CombinedRecord[]> = {};
+        records.forEach(r => {
+            const dateKey = format(r.date, 'yyyy-MM-dd');
+            if (!groups[dateKey]) {
+                groups[dateKey] = [];
+            }
+            groups[dateKey].push(r);
+        });
+
+        // 4. Transform to array and sort by date desc
+        return Object.entries(groups)
+            .map(([dateKey, items]) => ({
+                dateKey,
+                date: items[0].date, // Use the date from the first item
+                items: items
+            }))
+            .sort((a, b) => b.date.getTime() - a.date.getTime());
     }, [painReports, dailyRecords]);
 
     const isLoading = isPainLoading || isDailyLoading;
@@ -152,7 +178,7 @@ export default function PainRecordList({ playerId }: PainRecordListProps) {
         return <div className="text-center py-4 text-muted-foreground">載入紀錄中...</div>;
     }
 
-    if (combinedRecords.length === 0) {
+    if (groupedRecords.length === 0) {
         return (
             <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">
@@ -168,85 +194,96 @@ export default function PainRecordList({ playerId }: PainRecordListProps) {
             <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                     <AlertCircle className="h-4 w-4" />
-                    傷病與生病紀錄 ({combinedRecords.length})
+                    傷病與生病紀錄
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-                <ScrollArea className="h-[300px]">
-                    <div className="divide-y">
-                        {combinedRecords.map((record) => (
-                            <div key={record.id} className="p-4 hover:bg-muted/50 transition-colors">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="space-y-1">
-                                        <div className="font-medium flex items-center gap-2">
-                                            {record.type === 'illness' ? (
-                                                <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200">
-                                                    <Thermometer className="h-3 w-3 mr-1" />
-                                                    生病
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
-                                                    傷痛
-                                                </Badge>
-                                            )}
-                                            <span>
-                                                {record.title}
-                                                {record.level !== undefined && record.level > 0 && (
-                                                    <span className="ml-2 text-slate-600 whitespace-nowrap">疼痛指數 {record.level}</span>
-                                                )}
-                                            </span>
-                                            {record.subTitle && (
-                                                <span className="text-xs font-normal text-muted-foreground">
-                                                    ({record.subTitle})
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {format(record.date, 'PPP', { locale: zhTW })}
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                        {record.isResolved ? (
-                                            <Badge variant="outline" className="text-xs text-green-600 border-green-200">
-                                                已解決
-                                            </Badge>
-                                        ) : (
-                                            record.type === 'pain' && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-7 text-xs border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        // We need to pass the real ID (pain-123 -> 123) or full record to dialog
-                                                        // But dialog expects 'bodyPartName' etc.
-                                                        // Let's pass the combined record to state
-                                                        setActiveStatusDialog(record);
-                                                    }}
-                                                >
-                                                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                    有比較好嗎？
-                                                </Button>
-                                            )
-                                        )}
-                                    </div>
+                <div className="divide-y">
+                    {groupedRecords.map((group) => (
+                        <div key={group.dateKey} className="p-4 bg-white hover:bg-slate-50 transition-colors">
+                            {/* Date Header */}
+                            <div className="mb-3 flex items-center gap-2">
+                                <div className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded text-sm">
+                                    {format(group.date, 'MM/dd')}
                                 </div>
-                                {record.description && (
-                                    <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
-                                        {record.description}
-                                    </p>
-                                )}
-                                {record.doctorNote && (
-                                    <p className="text-sm text-slate-600 bg-blue-50 p-2 rounded mt-2 border border-blue-100 flex gap-2">
-                                        <span className="font-bold flex-shrink-0 text-blue-700">醫囑：</span>
-                                        {record.doctorNote}
-                                    </p>
-                                )}
+                                <span className="text-xs text-slate-400 font-medium">{format(group.date, 'yyyy')}</span>
                             </div>
-                        ))}
-                    </div>
-                </ScrollArea>
+
+                            {/* Items for this date */}
+                            <div className="space-y-4 pl-2 border-l-2 border-slate-100 ml-2">
+                                {group.items.map((record) => (
+                                    <div key={record.id} className="relative">
+                                        {/* Item Content */}
+                                        <div className="flex justify-between items-start mb-1">
+                                            <div className="space-y-1">
+                                                <div className="font-medium flex items-center gap-2 flex-wrap">
+                                                    {record.type === 'illness' ? (
+                                                        <Badge variant="outline" className="mr-2 px-2 py-0.5 text-xs font-bold bg-orange-50 text-orange-600 border-orange-200">
+                                                            生病
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="mr-2 px-2 py-0.5 text-xs font-bold bg-red-50 text-red-600 border-red-200">
+                                                            傷痛
+                                                        </Badge>
+                                                    )}
+                                                    <span className="text-slate-900 font-bold">
+                                                        {record.title}
+                                                        {record.level !== undefined && record.level > 0 && (
+                                                            <span className="ml-2 text-slate-500 font-normal whitespace-nowrap text-sm">疼痛指數 {record.level}</span>
+                                                        )}
+                                                    </span>
+                                                    {record.subTitle && (
+                                                        <span className="text-xs font-normal text-slate-400">
+                                                            ({record.subTitle})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1">
+                                                {record.isResolved ? (
+                                                    <Badge variant="outline" className="text-xs text-green-600 border-green-200 bg-green-50">
+                                                        已解決
+                                                    </Badge>
+                                                ) : (
+                                                    record.type === 'pain' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                setActiveStatusDialog(record);
+                                                            }}
+                                                        >
+                                                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                            回報恢復
+                                                        </Button>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Description & Notes */}
+                                        <div className="space-y-2 mt-2">
+                                            {record.description && (
+                                                <div className="text-sm text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                                    {record.description}
+                                                </div>
+                                            )}
+                                            {record.doctorNote && (
+                                                <div className="text-sm text-blue-700 bg-blue-50 p-2.5 rounded-lg border border-blue-100 flex gap-2 items-start">
+                                                    <span className="font-bold flex-shrink-0 text-blue-600 text-xs uppercase tracking-wider mt-0.5">醫囑</span>
+                                                    <span>{record.doctorNote}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </CardContent>
 
             {activeStatusDialog && (
