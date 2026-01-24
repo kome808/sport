@@ -188,10 +188,7 @@ export default function DashboardLayout() {
                 </Link>
                 <button
                     className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-bold text-destructive hover:bg-destructive/10 transition-all duration-200"
-                    onClick={() => {
-                        // TODO: 登出邏輯
-                        console.log('登出');
-                    }}
+                    onClick={handleLogout}
                 >
                     <LogOut className="h-5 w-5" />
                     <span>登出 Logout</span>

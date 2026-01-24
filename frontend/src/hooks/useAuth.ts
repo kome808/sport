@@ -27,6 +27,21 @@ export function useAuth() {
     useEffect(() => {
         let cancelled = false;
 
+        const fetchCoach = async (userId: string) => {
+            const { data, error } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('coaches')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Fetch coach error:', error);
+                return null;
+            }
+            return data;
+        };
+
         const init = async () => {
             try {
                 const { data } = await supabase.auth.getSession();
@@ -34,9 +49,12 @@ export function useAuth() {
                 if (cancelled) return;
 
                 if (data.session?.user) {
+                    const coachData = await fetchCoach(data.session.user.id);
+                    if (cancelled) return;
+
                     setState({
                         user: data.session.user,
-                        coach: null, // 暫時不查詢 coach，避免問題
+                        coach: coachData,
                         isLoading: false,
                         error: null,
                     });
@@ -60,13 +78,16 @@ export function useAuth() {
 
         // 監聽認證狀態變化
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event, session) => {
+            async (event, session) => {
                 if (cancelled) return;
 
-                if (event === 'SIGNED_IN' && session?.user) {
+                if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+                    const coachData = await fetchCoach(session.user.id);
+                    if (cancelled) return;
+
                     setState({
                         user: session.user,
-                        coach: null,
+                        coach: coachData,
                         isLoading: false,
                         error: null,
                     });
@@ -126,9 +147,13 @@ export function useAuth() {
                     await supabase
                         .schema(SCHEMA_NAME)
                         .from('coaches')
-                        .upsert({ email: authData.user.email, name }, { onConflict: 'email' });
-                } catch {
-                    // Ignore
+                        .upsert({
+                            id: authData.user.id,
+                            email: authData.user.email,
+                            name
+                        }, { onConflict: 'id' });
+                } catch (e) {
+                    console.error('Upsert coach error:', e);
                 }
             }
 

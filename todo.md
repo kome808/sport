@@ -11,6 +11,14 @@
     - [x] 檢查儀表板的傷病統計功能。
 
 ## 已完成 (Completed)
+- [x] **Gmail SMTP 郵件發送設定 (Gmail SMTP Setup)**
+    - [x] 創建完整教學文檔 (`docs/GMAIL_SMTP_SETUP.md`)
+    - [x] 創建快速設定指南 (`docs/GMAIL_SMTP_QUICKSTART.md`)
+    - [x] 設定環境變數 (`.env`)
+    - [x] 配置 Supabase SMTP (`supabase/config.toml`)
+    - [x] 在 Supabase Dashboard 完成 SMTP 設定
+    - [x] Gmail 帳號：sportrepotw@gmail.com
+    - [x] 發件人名稱：SportRepo
 - [x] **球員回報頁面 (Player Report Page) 優化**
     - [x] RHR, Wellness, sRPE 增加詳細說明文字。
     - [x] 訓練時間改為「小時 + 分鐘」輸入。

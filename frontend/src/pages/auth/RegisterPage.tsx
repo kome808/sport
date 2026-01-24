@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 const registerSchema = z.object({
     name: z.string().min(2, '姓名至少需要 2 個字元'),
     email: z.string().email('請輸入有效的 Email 格式'),
-    password: z.string().min(8, '密碼至少需要 8 個字元'),
+    password: z.string().min(6, '密碼至少需要 6 個字元'),
     confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
     message: '密碼不一致',
@@ -28,12 +28,7 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
-const passwordRequirements = [
-    { label: '至少 8 個字元', test: (pw: string) => pw.length >= 8 },
-    { label: '包含大寫字母', test: (pw: string) => /[A-Z]/.test(pw) },
-    { label: '包含小寫字母', test: (pw: string) => /[a-z]/.test(pw) },
-    { label: '包含數字', test: (pw: string) => /[0-9]/.test(pw) },
-];
+
 
 export default function RegisterPage() {
     const navigate = useNavigate();
@@ -45,13 +40,12 @@ export default function RegisterPage() {
     const {
         register,
         handleSubmit,
-        watch,
         formState: { errors },
     } = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
     });
 
-    const password = watch('password', '');
+
 
     const handleGoogleRegister = async () => {
         setIsLoading(true);
@@ -172,34 +166,29 @@ export default function RegisterPage() {
                                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </button>
                                 </div>
-                                {/* 密碼強度提示 */}
-                                {password && (
-                                    <ul className="text-xs space-y-1 mt-2">
-                                        {passwordRequirements.map((req) => (
-                                            <li
-                                                key={req.label}
-                                                className={`flex items-center gap-1.5 ${req.test(password) ? 'text-green-600' : 'text-muted-foreground'
-                                                    }`}
-                                            >
-                                                <Check className={`h-3 w-3 ${req.test(password) ? '' : 'opacity-30'}`} />
-                                                {req.label}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
+
                                 {errors.password && (
                                     <p className="text-sm text-destructive">{errors.password.message}</p>
                                 )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="confirmPassword">確認密碼</Label>
-                                <Input
-                                    id="confirmPassword"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    {...register('confirmPassword')}
-                                    disabled={isLoading}
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="confirmPassword"
+                                        type={showPassword ? 'text' : 'password'}
+                                        placeholder="••••••••"
+                                        {...register('confirmPassword')}
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
                                 {errors.confirmPassword && (
                                     <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
                                 )}

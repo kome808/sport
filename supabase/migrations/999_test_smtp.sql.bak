@@ -1,0 +1,48 @@
+-- ==========================================
+-- Gmail SMTP 測試郵件發送函數
+-- ==========================================
+-- 此檔案提供測試 SMTP 設定的 SQL 函數
+-- 使用方法：在 Supabase SQL Editor 中執行此檔案
+
+-- 測試函數：發送測試郵件
+CREATE OR REPLACE FUNCTION public.test_smtp_email(
+    recipient_email TEXT,
+    test_subject TEXT DEFAULT '運動管理平台 - SMTP 測試郵件',
+    test_message TEXT DEFAULT '這是一封測試郵件，用於驗證 Gmail SMTP 設定是否正確。如果您收到此郵件，表示設定成功！'
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result JSON;
+BEGIN
+    -- 注意：Supabase 的郵件發送通常透過 Auth 系統
+    -- 此函數僅用於記錄測試請求
+    
+    -- 記錄測試請求
+    RAISE NOTICE '準備發送測試郵件到: %', recipient_email;
+    RAISE NOTICE '主旨: %', test_subject;
+    RAISE NOTICE '內容: %', test_message;
+    
+    -- 返回測試資訊
+    result := json_build_object(
+        'success', true,
+        'message', '測試郵件請求已記錄',
+        'recipient', recipient_email,
+        'subject', test_subject,
+        'note', '請檢查 Supabase Auth Logs 查看實際發送狀態'
+    );
+    
+    RETURN result;
+END;
+$$;
+
+-- 授予執行權限
+GRANT EXECUTE ON FUNCTION public.test_smtp_email(TEXT, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.test_smtp_email(TEXT, TEXT, TEXT) TO service_role;
+
+-- 使用範例：
+-- SELECT public.test_smtp_email('your-email@gmail.com');
+
+COMMENT ON FUNCTION public.test_smtp_email IS '測試 SMTP 郵件發送功能（僅記錄請求）';

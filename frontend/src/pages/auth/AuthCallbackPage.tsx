@@ -35,13 +35,18 @@ export default function AuthCallbackPage() {
                 await supabase
                     .schema(SCHEMA_NAME)
                     .from('coaches')
-                    .upsert({ email, name }, { onConflict: 'email' });
+                    .upsert({
+                        id: session.user.id,
+                        email,
+                        name
+                    }, { onConflict: 'id' });
 
-                // 查詢教練所屬的球隊
+                // 查詢教練自己所屬的球隊
                 const { data: teams } = await supabase
                     .schema(SCHEMA_NAME)
                     .from('teams')
                     .select('slug')
+                    .eq('coach_id', session.user.id)
                     .limit(1);
 
                 if (teams && teams.length > 0) {

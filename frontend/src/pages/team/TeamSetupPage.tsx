@@ -2,7 +2,7 @@
  * 球隊初始化設定頁面
  */
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -42,10 +42,12 @@ type TeamSetupFormData = z.infer<typeof teamSetupSchema>;
 
 export default function TeamSetupPage() {
     const navigate = useNavigate();
-    const { coach } = useAuth();
+    const { coach, user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [isSlugValidating, setIsSlugValidating] = useState(false);
+    const [slugError, setSlugError] = useState<string | null>(null);
 
     const {
         register,
@@ -61,6 +63,92 @@ export default function TeamSetupPage() {
     });
 
     const slug = watch('slug', '');
+    const [isCreatingCoach, setIsCreatingCoach] = useState(false);
+
+    // 自動建立教練資料 (針對 OAuth 使用者)
+    useEffect(() => {
+        let isMounted = true;
+        const ensureCoach = async () => {
+            if (user && !coach && !isCreatingCoach) {
+                setIsCreatingCoach(true);
+                try {
+                    // 1. 先檢查是否已存在 (避免 409)
+                    const { data: existingCoach } = await supabase
+                        .schema(SCHEMA_NAME)
+                        .from('coaches')
+                        .select('id')
+                        .eq('id', user.id)
+                        .maybeSingle();
+
+                    if (!existingCoach) {
+                        // 2. 不存在才插入
+                        await supabase
+                            .schema(SCHEMA_NAME)
+                            .from('coaches')
+                            .insert({
+                                id: user.id,
+                                email: user.email,
+                                name: user.user_metadata?.full_name || user.user_metadata?.name || '新教練'
+                            });
+                    }
+                } catch (e) {
+                    // 即使失敗也可能是因為別人寫入了，我們忽略此錯誤以繼續流程
+                    console.log('Coach profile sync status:', e);
+                } finally {
+                    if (isMounted) setIsCreatingCoach(false);
+                }
+            }
+        };
+        ensureCoach();
+        return () => { isMounted = false; };
+    }, [user?.id, !!coach]);
+
+    // 即時檢查 Slug 是否重複
+    useEffect(() => {
+        if (!slug || slug.length < 3 || errors.slug) {
+            setSlugError(null);
+            setIsSlugValidating(false);
+            return;
+        }
+
+        const checkSlug = async () => {
+            console.log('Checking slug:', slug);
+            setIsSlugValidating(true);
+
+            // 3秒強制限時，防止轉圈圈卡死
+            const timerId = setTimeout(() => {
+                setIsSlugValidating(false);
+                console.warn('Slug check timeout');
+            }, 3000);
+
+            try {
+                const { data, error: fetchError } = await supabase
+                    .schema(SCHEMA_NAME)
+                    .from('teams')
+                    .select('id')
+                    .eq('slug', slug)
+                    .maybeSingle();
+
+                if (fetchError) throw fetchError;
+
+                if (data) {
+                    setSlugError('此 URL 代碼已被使用');
+                } else {
+                    setSlugError(null);
+                }
+            } catch (err) {
+                console.error('Check slug error:', err);
+                setSlugError(null);
+            } finally {
+                clearTimeout(timerId);
+                setIsSlugValidating(false);
+                console.log('Slug check finished');
+            }
+        };
+
+        const timer = setTimeout(checkSlug, 800);
+        return () => clearTimeout(timer);
+    }, [slug, errors.slug]);
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -74,16 +162,26 @@ export default function TeamSetupPage() {
     };
 
     const onSubmit = async (data: TeamSetupFormData) => {
+        if (slugError) return;
+
         setIsLoading(true);
         setErrorMessage(null);
 
         try {
+            const currentUserId = coach?.id || user?.id;
+
+            if (!currentUserId) {
+                setErrorMessage('無法取得教練資訊，請重新登入');
+                setIsLoading(false);
+                return;
+            }
+
             // 1. 建立球隊
             const { data: teamData, error: teamError } = await supabase
                 .schema(SCHEMA_NAME)
                 .from('teams')
                 .insert({
-                    coach_id: coach?.id,
+                    coach_id: currentUserId,
                     name: data.name,
                     slug: data.slug,
                     sport_type: data.sportType,
@@ -114,7 +212,7 @@ export default function TeamSetupPage() {
                 .from('team_members')
                 .insert({
                     team_id: newTeam.id,
-                    coach_id: coach?.id,
+                    coach_id: currentUserId,
                     role: 'owner',
                 });
 
@@ -198,13 +296,25 @@ export default function TeamSetupPage() {
                                         placeholder="taipei-baseball"
                                         {...register('slug')}
                                         disabled={isLoading}
-                                        className="flex-1"
+                                        className={`flex-1 ${slugError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                     />
                                 </div>
-                                {slug && !errors.slug && (
+                                {isSlugValidating && (
+                                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        正在檢查代碼可用性...
+                                    </p>
+                                )}
+                                {slugError && (
+                                    <p className="text-sm text-destructive flex items-center gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        {slugError}
+                                    </p>
+                                )}
+                                {slug && !errors.slug && !slugError && !isSlugValidating && (
                                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                                         <Check className="h-3 w-3 text-green-600" />
-                                        球隊網址將會是: domain.com/{slug}
+                                        此網址可以使用: domain.com/{slug}
                                     </p>
                                 )}
                                 {errors.slug && (
@@ -237,9 +347,18 @@ export default function TeamSetupPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="pb-6 pt-0">
-                            <Button type="submit" className="w-full bg-[#7367F0] text-white hover:bg-[#5E50EE] border-0" disabled={isLoading}>
-                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                建立球隊
+                            <Button
+                                type="submit"
+                                className="w-full bg-[#7367F0] text-white hover:bg-[#5E50EE] border-0"
+                                disabled={isLoading || isSlugValidating || !!slugError}
+                            >
+                                {isLoading ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />正在建立...</>
+                                ) : isSlugValidating ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />檢查網址中...</>
+                                ) : (
+                                    '建立球隊'
+                                )}
                             </Button>
                         </CardFooter>
                     </form>

@@ -70,11 +70,12 @@ export default function LoginPage() {
             }
 
             // 登入成功，判斷導向位置
-            // 查詢教練所屬的球隊
+            // 查詢教練自己所屬的球隊
             const { data: teams } = await supabase
                 .schema(SCHEMA_NAME)
                 .from('teams')
                 .select('slug')
+                .eq('coach_id', result.user?.id)
                 .limit(1);
 
             if (teams && teams.length > 0) {

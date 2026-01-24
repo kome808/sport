@@ -163,6 +163,7 @@ function DashboardRedirect() {
           .schema(SCHEMA_NAME)
           .from('teams')
           .select('slug')
+          .eq('coach_id', user.id)
           .limit(1);
 
         if (teams && teams.length > 0) {
