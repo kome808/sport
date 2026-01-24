@@ -68,11 +68,16 @@ const menuItems = [
     },
 ];
 
+import { useAuth } from '@/hooks/useAuth';
+
+// ... (省略部分 import 保持不變)
+
 export default function DashboardLayout() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
     const navigate = useNavigate();
+    const { isAnonymous } = useAuth(); // 偵測匿名狀態
     const { data: teamData, isLoading: isTeamLoading } = useTeam(teamSlug || '');
-    const { data: myTeams, isLoading: isMyTeamsLoading } = useMyTeams();
+    const { data: myTeams } = useMyTeams();
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -82,6 +87,10 @@ export default function DashboardLayout() {
     // 獲取使用者資料
     const fetchUserProfile = async () => {
         const { data: { user } } = await supabase.auth.getUser();
+        if (user?.is_anonymous) {
+            setUserName('演示訪客');
+            return;
+        }
         if (user?.user_metadata?.full_name) {
             setUserName(user.user_metadata.full_name);
         }
@@ -326,6 +335,27 @@ export default function DashboardLayout() {
 
                     {/* 頁面內容 */}
                     <main className="p-4 lg:p-6">
+                        {isAnonymous && (
+                            <div className="mb-6 flex items-center justify-between p-4 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 animate-in slide-in-from-top duration-500">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/20 p-2 rounded-xl">
+                                        <LayoutDashboard className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm">您目前處於「展示模式」</p>
+                                        <p className="text-[10px] opacity-80 font-medium">您可以盡情瀏覽系統功能，但無法修改任何示範數據。</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-white hover:bg-white/10 font-bold text-xs rounded-lg"
+                                    onClick={() => navigate('/register')}
+                                >
+                                    立即註冊正式版
+                                </Button>
+                            </div>
+                        )}
                         <Outlet />
                     </main>
                 </div>

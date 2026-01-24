@@ -3,15 +3,17 @@
  */
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
-    const { signInWithGoogle } = useAuth();
+    const { signInWithGoogle, signInAnonymously } = useAuth();
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -58,44 +60,53 @@ export default function LoginPage() {
                             {/* Check if in Demo Mode */}
                             {new URLSearchParams(window.location.search).get('demo') === 'coach' ? (
                                 <div className="pt-2">
-                                    <p className="text-sm font-bold text-center mb-4 text-indigo-600">-- 演示模式登入 --</p>
-                                    <form onSubmit={async (e) => {
-                                        e.preventDefault();
-                                        // 暫時停用 Demo 登入以恢復系統穩定
-                                        setErrorMessage('演示系統維護中，請使用正常帳號登入。');
-                                    }} className="space-y-3">
-                                        <div className="space-y-1">
-                                            <p className="text-xs font-bold text-slate-500 pl-1 uppercase">帳號</p>
-                                            <input
-                                                readOnly
-                                                value="sportrepotw@gmail.com"
-                                                className="w-full h-12 px-4 rounded-xl border bg-slate-100/50 text-base font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-xs font-bold text-slate-500 pl-1 uppercase">密碼</p>
-                                            <input
-                                                type="password"
-                                                readOnly
-                                                value="sportrepotw"
-                                                className="w-full h-12 px-4 rounded-xl border bg-slate-100/50 text-base font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                                            />
+                                    <p className="text-sm font-bold text-center mb-6 text-indigo-600 bg-indigo-50 py-2 rounded-lg border border-indigo-100 uppercase tracking-widest">
+                                        ✨ 展示模式 ✨
+                                    </p>
+                                    <div className="space-y-4">
+                                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-slate-500 text-sm leading-relaxed">
+                                            系統將為您建立一個 <span className="font-bold text-indigo-600 underline">匿名臨時帳號</span>，您可以直接體驗儀表板與各項專業圖表數據，無需填寫任何個資。
                                         </div>
                                         <Button
-                                            type="submit"
+                                            type="button"
+                                            onClick={async () => {
+                                                setIsLoading(true);
+                                                const result = await (signInAnonymously as any)();
+                                                if (result.success) {
+                                                    console.log('匿名登入成功，正在獲取展示球隊...');
+                                                    // 取得第一支球隊並直接跳轉，避免在 dashboard 轉圈圈
+                                                    const { data: teams, error: rpcError } = await supabase.rpc('get_my_teams');
+
+                                                    if (rpcError) {
+                                                        console.error('RPC Error:', rpcError);
+                                                        setErrorMessage('無法取得展示球隊數據');
+                                                        setIsLoading(false);
+                                                        return;
+                                                    }
+
+                                                    if (teams && teams.length > 0) {
+                                                        const targetPath = `/${teams[0].slug}`;
+                                                        console.log(`正在跳轉至展示球隊: ${targetPath}`);
+                                                        navigate(targetPath);
+                                                    } else {
+                                                        console.warn('找不到任何展示球隊，退回到儀表板');
+                                                        navigate('/dashboard');
+                                                    }
+                                                } else {
+                                                    setErrorMessage(result.error?.message || '匿名登入失敗');
+                                                    setIsLoading(false);
+                                                }
+                                            }}
                                             disabled={isLoading}
-                                            className="w-full h-12 rounded-xl text-lg font-black bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 mt-2 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                            className="w-full h-14 rounded-2xl text-lg font-black bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                                         >
                                             {isLoading ? (
-                                                <>
-                                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                                    登入中...
-                                                </>
+                                                <Loader2 className="h-6 w-6 animate-spin" />
                                             ) : (
-                                                '一鍵登入演示帳號'
+                                                '立即進入體驗 (Demo)'
                                             )}
                                         </Button>
-                                    </form>
+                                    </div>
                                 </div>
                             ) : (
                                 <Button

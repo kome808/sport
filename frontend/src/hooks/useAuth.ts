@@ -49,6 +49,17 @@ export function useAuth() {
                 if (sessionError) throw sessionError;
 
                 if (session?.user) {
+                    // 如果是匿名用戶，不抓取教練資料
+                    if (session.user.is_anonymous) {
+                        setState({
+                            user: session.user,
+                            coach: null,
+                            isLoading: false,
+                            error: null,
+                        });
+                        return;
+                    }
+
                     const coachData = await fetchCoach(session.user.id);
                     if (cancelled) return;
                     setState({
@@ -80,6 +91,17 @@ export function useAuth() {
                 if (cancelled) return;
 
                 if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+                    // 如果是匿名用戶，不抓取教練資料
+                    if (session.user.is_anonymous) {
+                        setState({
+                            user: session.user,
+                            coach: null,
+                            isLoading: false,
+                            error: null,
+                        });
+                        return;
+                    }
+
                     const coachData = await fetchCoach(session.user.id);
                     if (cancelled) return;
 
@@ -169,12 +191,25 @@ export function useAuth() {
         }
     }, []);
 
+    // 匿名登入 (Demo 模式)
+    const signInAnonymously = useCallback(async () => {
+        try {
+            const { data, error } = await supabase.auth.signInAnonymously();
+            if (error) return { success: false, error };
+            return { success: true, user: data.user };
+        } catch (e: any) {
+            return { success: false, error: { message: e.message } as AuthError };
+        }
+    }, []);
+
     return {
         ...state,
         isAuthenticated: !!state.user,
+        isAnonymous: state.user?.is_anonymous ?? false,
         signIn,
         signUp,
         signOut,
         signInWithGoogle,
+        signInAnonymously,
     };
 }
