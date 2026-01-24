@@ -42,7 +42,7 @@ type TeamSetupFormData = z.infer<typeof teamSetupSchema>;
 
 export default function TeamSetupPage() {
     const navigate = useNavigate();
-    const { coach, user } = useAuth();
+    const { coach, user, isLoading: authLoading, isAnonymous } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -65,9 +65,17 @@ export default function TeamSetupPage() {
     const slug = watch('slug', '');
     const [isCreatingCoach, setIsCreatingCoach] = useState(false);
 
-    // 自動建立教練資料 (針對 OAuth 使用者)
+    // 認證保護與自動建立教練資料
     useEffect(() => {
         let isMounted = true;
+
+        // 檢查登入狀態 (當認證初始化完成後)
+        // 只有「非匿名」且「已登入」的使用者可以建立球隊
+        if (!authLoading && (!user || isAnonymous)) {
+            navigate('/register');
+            return;
+        }
+
         const ensureCoach = async () => {
             if (user && !coach && !isCreatingCoach) {
                 setIsCreatingCoach(true);
@@ -117,7 +125,7 @@ export default function TeamSetupPage() {
         };
         ensureCoach();
         return () => { isMounted = false; };
-    }, [user?.id, !!coach]);
+    }, [user?.id, !!coach, authLoading, isAnonymous, navigate]);
 
     // 移除前端即時檢查，改由提交時由資料庫 Unique 制約進行最終判定
     useEffect(() => {
@@ -219,6 +227,14 @@ export default function TeamSetupPage() {
             setIsLoading(false);
         }
     };
+
+    if (authLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-8">
