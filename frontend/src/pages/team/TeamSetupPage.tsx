@@ -71,18 +71,30 @@ export default function TeamSetupPage() {
         const ensureCoach = async () => {
             if (user && !coach && !isCreatingCoach) {
                 setIsCreatingCoach(true);
+                console.log('Ensuring coach profile for:', user.email);
                 try {
-                    // 1. 先檢查是否已存在 (避免 409)
-                    const { data: existingCoach } = await supabase
+                    // 1. 先根據 Email 尋找是否已有教練紀錄 (處理登入方式變更的情況)
+                    const { data: existingByEmail, error: fetchError } = await supabase
                         .schema(SCHEMA_NAME)
                         .from('coaches')
-                        .select('id')
-                        .eq('id', user.id)
+                        .select('id, email')
+                        .eq('email', user.email)
                         .maybeSingle();
 
-                    if (!existingCoach) {
-                        // 2. 不存在才插入
-                        await supabase
+                    if (fetchError) throw fetchError;
+
+                    if (existingByEmail) {
+                        if (existingByEmail.id !== user.id) {
+                            console.warn('ID Mismatch detected! Email has different ID in database.', {
+                                dbId: existingByEmail.id,
+                                authId: user.id
+                            });
+                        } else {
+                            console.log('Coach profile already exists and ID matches.');
+                        }
+                    } else {
+                        // 2. 完全不存在，才執行插入
+                        const { error: insertError } = await supabase
                             .schema(SCHEMA_NAME)
                             .from('coaches')
                             .insert({
@@ -90,10 +102,14 @@ export default function TeamSetupPage() {
                                 email: user.email,
                                 name: user.user_metadata?.full_name || user.user_metadata?.name || '新教練'
                             });
+
+                        if (insertError) {
+                            if (!insertError.message.includes('Conflict')) throw insertError;
+                        }
+                        console.log('New coach profile created.');
                     }
-                } catch (e) {
-                    // 即使失敗也可能是因為別人寫入了，我們忽略此錯誤以繼續流程
-                    console.log('Coach profile sync status:', e);
+                } catch (e: any) {
+                    console.error('Coach sync failed:', e.message);
                 } finally {
                     if (isMounted) setIsCreatingCoach(false);
                 }
@@ -103,52 +119,11 @@ export default function TeamSetupPage() {
         return () => { isMounted = false; };
     }, [user?.id, !!coach]);
 
-    // 即時檢查 Slug 是否重複
+    // 移除前端即時檢查，改由提交時由資料庫 Unique 制約進行最終判定
     useEffect(() => {
-        if (!slug || slug.length < 3 || errors.slug) {
-            setSlugError(null);
-            setIsSlugValidating(false);
-            return;
-        }
-
-        const checkSlug = async () => {
-            console.log('Checking slug:', slug);
-            setIsSlugValidating(true);
-
-            // 3秒強制限時，防止轉圈圈卡死
-            const timerId = setTimeout(() => {
-                setIsSlugValidating(false);
-                console.warn('Slug check timeout');
-            }, 3000);
-
-            try {
-                const { data, error: fetchError } = await supabase
-                    .schema(SCHEMA_NAME)
-                    .from('teams')
-                    .select('id')
-                    .eq('slug', slug)
-                    .maybeSingle();
-
-                if (fetchError) throw fetchError;
-
-                if (data) {
-                    setSlugError('此 URL 代碼已被使用');
-                } else {
-                    setSlugError(null);
-                }
-            } catch (err) {
-                console.error('Check slug error:', err);
-                setSlugError(null);
-            } finally {
-                clearTimeout(timerId);
-                setIsSlugValidating(false);
-                console.log('Slug check finished');
-            }
-        };
-
-        const timer = setTimeout(checkSlug, 800);
-        return () => clearTimeout(timer);
-    }, [slug, errors.slug]);
+        setSlugError(null);
+        setIsSlugValidating(false);
+    }, [slug]);
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -168,13 +143,23 @@ export default function TeamSetupPage() {
         setErrorMessage(null);
 
         try {
-            const currentUserId = coach?.id || user?.id;
+            // 獲取當前真正有效的教練 ID (從資料庫讀取，確保符合 RLS 預期的 Email 連結)
+            const { data: dbCoach } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('coaches')
+                .select('id')
+                .eq('email', user?.email)
+                .maybeSingle();
+
+            const currentUserId = dbCoach?.id || coach?.id || user?.id;
 
             if (!currentUserId) {
                 setErrorMessage('無法取得教練資訊，請重新登入');
                 setIsLoading(false);
                 return;
             }
+
+            console.log('Attempting to create team:', { coach_id: currentUserId, name: data.name, slug: data.slug });
 
             // 1. 建立球隊
             const { data: teamData, error: teamError } = await supabase
@@ -189,11 +174,16 @@ export default function TeamSetupPage() {
                 .select()
                 .limit(1);
 
+            console.log('Team creation server response:', { teamData, teamError });
+
             if (teamError) {
+                console.error('Supabase Team Insert Error:', teamError);
                 if (teamError.message.includes('duplicate key') || teamError.message.includes('unique')) {
                     setErrorMessage('此 URL 代碼已被使用，請換一個');
+                } else if (teamError.code === '42501') {
+                    setErrorMessage('權限不足：您的帳號尚未同步完成，請嘗試重新整理頁面。');
                 } else {
-                    setErrorMessage(teamError.message);
+                    setErrorMessage(`建立失敗: ${teamError.message}`);
                 }
                 setIsLoading(false);
                 return;

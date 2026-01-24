@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createBrowserRouter, RouterProvider, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { supabase, SCHEMA_NAME } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
 // 頁面元件
@@ -141,7 +141,7 @@ const router = createBrowserRouter([
 
 /**
  * 自動導向組件
- * 當使用者存取 /dashboard 時，自動尋找其所屬球隊並導向
+ * 當使用者存取 /dashboard時，自動尋找其所屬球隊並導向
  */
 function DashboardRedirect() {
   const navigate = useNavigate();
@@ -159,12 +159,8 @@ function DashboardRedirect() {
     const performRedirect = async () => {
       setIsRedirecting(true);
       try {
-        const { data: teams } = await supabase
-          .schema(SCHEMA_NAME)
-          .from('teams')
-          .select('slug')
-          .eq('coach_id', user.id)
-          .limit(1);
+        const { data: teams, error } = await supabase.rpc('get_my_teams');
+        if (error) throw error;
 
         if (teams && teams.length > 0) {
           navigate(`/${teams[0].slug}`, { replace: true });
@@ -172,7 +168,7 @@ function DashboardRedirect() {
           navigate('/team/setup', { replace: true });
         }
       } catch (err) {
-        console.error('Redirect failed:', err);
+        console.error('[DashboardRedirect] Redirect failed:', err);
         navigate('/team/setup', { replace: true });
       }
     };

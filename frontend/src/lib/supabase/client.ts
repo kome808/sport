@@ -45,7 +45,7 @@ export const getSupabaseClient = (): SupabaseClient => {
                 persistSession: true,
                 autoRefreshToken: true,
                 detectSessionInUrl: true,
-                flowType: 'implicit',
+                flowType: 'pkce',
             },
             // 關閉 Realtime 以避免不必要的連線
             realtime: {

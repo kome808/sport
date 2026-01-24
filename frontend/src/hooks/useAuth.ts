@@ -1,5 +1,5 @@
 /**
- * 認證相關 Hook - 簡化版
+ * 認證相關 Hook
  * 處理教練登入、登出、註冊等功能
  */
 
@@ -23,37 +23,36 @@ export function useAuth() {
         error: null,
     });
 
-    // 初始化：檢查現有的 session
+    const fetchCoach = async (userId: string) => {
+        const { data, error } = await supabase
+            .schema(SCHEMA_NAME)
+            .from('coaches')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (error) {
+            console.error('Fetch coach error:', error);
+            return null;
+        }
+        return data;
+    };
+
     useEffect(() => {
         let cancelled = false;
 
-        const fetchCoach = async (userId: string) => {
-            const { data, error } = await supabase
-                .schema(SCHEMA_NAME)
-                .from('coaches')
-                .select('*')
-                .eq('id', userId)
-                .maybeSingle();
-
-            if (error) {
-                console.error('Fetch coach error:', error);
-                return null;
-            }
-            return data;
-        };
-
         const init = async () => {
             try {
-                const { data } = await supabase.auth.getSession();
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
                 if (cancelled) return;
+                if (sessionError) throw sessionError;
 
-                if (data.session?.user) {
-                    const coachData = await fetchCoach(data.session.user.id);
+                if (session?.user) {
+                    const coachData = await fetchCoach(session.user.id);
                     if (cancelled) return;
-
                     setState({
-                        user: data.session.user,
+                        user: session.user,
                         coach: coachData,
                         isLoading: false,
                         error: null,
@@ -66,7 +65,7 @@ export function useAuth() {
                         error: null,
                     });
                 }
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Auth init error:', e);
                 if (!cancelled) {
                     setState(prev => ({ ...prev, isLoading: false }));
@@ -76,7 +75,6 @@ export function useAuth() {
 
         init();
 
-        // 監聽認證狀態變化
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (cancelled) return;
@@ -115,11 +113,7 @@ export function useAuth() {
                 email,
                 password,
             });
-
-            if (error) {
-                return { success: false, error };
-            }
-
+            if (error) return { success: false, error };
             return { success: true, user: data.user };
         } catch (e: any) {
             return { success: false, error: { message: e.message } as AuthError };
@@ -137,24 +131,17 @@ export function useAuth() {
                 },
             });
 
-            if (authError) {
-                return { success: false, error: authError };
-            }
+            if (authError) return { success: false, error: authError };
 
-            // 嘗試建立 coach 資料 (忽略錯誤)
             if (authData.user) {
-                try {
-                    await supabase
-                        .schema(SCHEMA_NAME)
-                        .from('coaches')
-                        .upsert({
-                            id: authData.user.id,
-                            email: authData.user.email,
-                            name
-                        }, { onConflict: 'id' });
-                } catch (e) {
-                    console.error('Upsert coach error:', e);
-                }
+                await supabase
+                    .schema(SCHEMA_NAME)
+                    .from('coaches')
+                    .upsert({
+                        id: authData.user.id,
+                        email: authData.user.email,
+                        name
+                    }, { onConflict: 'id' });
             }
 
             return { success: true, user: authData.user };
@@ -163,13 +150,11 @@ export function useAuth() {
         }
     }, []);
 
-    // 登出
     const signOut = useCallback(async () => {
         const { error } = await supabase.auth.signOut();
         return { success: !error, error };
     }, []);
 
-    // Google OAuth 登入
     const signInWithGoogle = useCallback(async () => {
         try {
             const { error } = await supabase.auth.signInWithOAuth({

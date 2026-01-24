@@ -149,9 +149,20 @@ export default function PlayersPage() {
         );
     };
 
+    // Demo Check
+    const isDemo = teamSlug === 'doraemon-baseball';
+    const checkDemo = () => {
+        if (isDemo) {
+            alert('展示模式無法修改球員資料');
+            return true;
+        }
+        return false;
+    };
+
     // 處理編輯提交
     const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (checkDemo()) return;
         if (!editingPlayer) return;
 
         const formData = new FormData(e.currentTarget);
@@ -176,6 +187,7 @@ export default function PlayersPage() {
 
     // 處理批次畢業
     const handleBatchGraduate = async () => {
+        if (checkDemo()) return;
         if (selectedPlayerIds.length === 0) return;
         try {
             await updatePlayerStatusMutation.mutateAsync({
@@ -190,6 +202,7 @@ export default function PlayersPage() {
 
     // 處理批次歸隊
     const handleBatchActivate = async () => {
+        if (checkDemo()) return;
         if (selectedPlayerIds.length === 0) return;
         try {
             await updatePlayerStatusMutation.mutateAsync({
@@ -204,6 +217,7 @@ export default function PlayersPage() {
 
     // 處理單一/批次刪除
     const handleBatchDelete = async () => {
+        if (checkDemo()) return;
         if (selectedPlayerIds.length === 0) return;
         try {
             await deletePlayersMutation.mutateAsync(selectedPlayerIds);
@@ -227,7 +241,7 @@ export default function PlayersPage() {
             {/* 頁面標題 */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-3xl font-black tracking-tight text-black">球員管理</h2>
+                    <h2 className="text-3xl font-black tracking-tight text-black">選手管理</h2>
                     <p className="text-black/80 font-bold text-lg">
                         管理球隊成員 ({players?.length || 0} 人)
                     </p>
@@ -235,7 +249,7 @@ export default function PlayersPage() {
                 <div className="flex gap-2">
                     <Button onClick={() => navigate(`/${teamSlug}/players/add`)} className="rounded-xl shadow-lg shadow-primary/25 h-12 px-6 font-black text-lg">
                         <Plus className="mr-2 h-5 w-5" />
-                        新增球員
+                        新增選手
                     </Button>
                 </div>
             </div>
@@ -268,7 +282,7 @@ export default function PlayersPage() {
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-black/40" />
                     <Input
-                        placeholder="搜尋球員姓名、背號、位置..."
+                        placeholder="搜尋選手姓名、背號、位置..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10 h-11 rounded-xl border-gray-300 focus:border-primary focus:ring-primary/20 text-black font-bold bg-white"
@@ -302,7 +316,7 @@ export default function PlayersPage() {
                             className="gap-2 shadow-lg shadow-destructive/20 rounded-xl font-black h-10 px-4 !bg-[#EA5455] !text-white hover:!bg-[#EA5455]/90"
                         >
                             <Trash2 className="h-4 w-4" />
-                            刪除球員
+                            刪除選手
                         </Button>
                     </div>
                 </div>
@@ -360,7 +374,7 @@ export default function PlayersPage() {
                             {filteredPlayers.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={9} className="h-60 text-center text-black font-black text-xl bg-gray-50/50">
-                                        查無球員資料
+                                        查無選手資料
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -426,7 +440,7 @@ export default function PlayersPage() {
                                                     <DropdownMenuItem
                                                         className="cursor-pointer rounded-xl font-bold text-black py-3 text-sm flex items-center"
                                                         onClick={() => {
-                                                            // 改為複製球員首頁連結
+                                                            // 改為複製選手首頁連結
                                                             const url = `${window.location.origin}/${teamSlug}/p/${player.short_code || player.id}`;
                                                             setActiveCopyUrl(url);
                                                             navigator.clipboard.writeText(url).then(() => {
@@ -439,7 +453,7 @@ export default function PlayersPage() {
                                                         }}
                                                     >
                                                         <Copy className="mr-3 h-4 w-4 text-primary" />
-                                                        球員回報網址
+                                                        選手回報網址
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         className="cursor-pointer rounded-xl font-bold text-black py-3 text-sm flex items-center"
@@ -482,7 +496,7 @@ export default function PlayersPage() {
                                 <div className="bg-primary/10 p-2 rounded-2xl">
                                     <Edit className="h-7 w-7 text-primary" />
                                 </div>
-                                編輯球員資料
+                                編輯選手資料
                             </DialogTitle>
                             <DialogDescription className="text-black/60 font-black text-lg mt-2">
                                 正在更新「{editingPlayer?.name}」的技術手冊資訊。
@@ -542,7 +556,7 @@ export default function PlayersPage() {
                                 連結已複製！
                             </DialogTitle>
                             <DialogDescription className="text-black/60 font-bold text-lg mt-2">
-                                球員回報網址已複製到剪貼簿。
+                                選手回報網址已複製到剪貼簿。
                             </DialogDescription>
                         </DialogHeader>
                     </div>
@@ -592,10 +606,10 @@ export default function PlayersPage() {
                                 <div className="bg-destructive/10 p-2 rounded-2xl">
                                     <AlertTriangle className="h-6 w-6 text-destructive" />
                                 </div>
-                                確認刪除球員？
+                                確認刪除選手？
                             </DialogTitle>
                             <DialogDescription className="text-black/60 font-bold text-lg mt-2">
-                                您即將永久刪除 <span className="text-destructive font-black">{selectedPlayerIds.length} 位</span> 球員的資料。
+                                您即將永久刪除 <span className="text-destructive font-black">{selectedPlayerIds.length} 位</span> 選手的資料。
                             </DialogDescription>
                         </DialogHeader>
                     </div>
@@ -609,11 +623,11 @@ export default function PlayersPage() {
                             <ul className="space-y-2">
                                 <li className="flex items-start gap-2 text-sm font-bold text-black/70">
                                     <span className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
-                                    球員資料將從系統中永久移除
+                                    選手資料將從系統中永久移除
                                 </li>
                                 <li className="flex items-start gap-2 text-sm font-bold text-black/70">
                                     <span className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
-                                    該球員將無法再登入平台
+                                    該選手將無法再登入平台
                                 </li>
                                 <li className="flex items-start gap-2 text-sm font-bold text-black/70">
                                     <span className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />

@@ -1,6 +1,6 @@
 /**
  * 球隊邀請頁面
- * 學生輸入通行碼 -> 認領或建立帳號
+ * 選手輸入通行碼 -> 認領或建立帳號
  */
 
 import { useState } from 'react';
@@ -13,7 +13,7 @@ import { Loader2, ArrowRight, UserPlus, UserCheck, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { usePlayerLogin, usePlayerSession } from '@/hooks/usePlayer';
 
@@ -23,7 +23,7 @@ const codeSchema = z.object({
     code: z.string().min(1, '請輸入通行碼'),
 });
 
-// Step 3: 球員資料 (整合認領與新增)
+// Step 3: 選手資料 (整合認領與新增)
 const playerSchema = z.object({
     name: z.string().min(2, '姓名至少 2 個字'),
     jersey_number: z.string().optional(),
@@ -47,7 +47,7 @@ export default function InvitationPage() {
     const [selectedPlayer, setSelectedPlayer] = useState<any | null>(null);
     const [invitationCode, setInvitationCode] = useState<string | null>(null);
     const [isJoiningTeam, setIsJoiningTeam] = useState(false);
-
+    const [isInvitationDisabled, setIsInvitationDisabled] = useState(false);
     // Hooks
     const { login } = usePlayerSession();
     const loginMutation = usePlayerLogin(); // 用於最後自動登入
@@ -92,7 +92,8 @@ export default function InvitationPage() {
 
             // 檢查是否開放邀請
             if (matchedTeam.is_invitation_enabled === false) {
-                setCodeError('code', { message: '目前未開放加入，請聯繫教練' });
+                setCodeError('code', { message: '目前未開放加入，請洽教練' });
+                setIsInvitationDisabled(true);
                 return;
             }
 
@@ -188,11 +189,29 @@ export default function InvitationPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
             <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <CardTitle>加入球隊</CardTitle>
-                    <CardDescription>
-                        {teamSlug}
-                    </CardDescription>
+                <CardHeader className="text-center pb-8 pt-12">
+                    <div className="space-y-4">
+                        <div className="space-y-1">
+                            <p className="text-lg font-bold text-slate-500">加入運動隊伍</p>
+                            {teamInfo && (
+                                <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tighter leading-tight px-4 transition-all">
+                                    {teamInfo.name}
+                                </h1>
+                            )}
+                        </div>
+
+                        <div className="flex items-center justify-center gap-2">
+                            <div className="h-[1px] w-8 bg-slate-200" />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                                {teamInfo ? "Identity Verification" : "Invitation Code Required"}
+                            </span>
+                            <div className="h-[1px] w-8 bg-slate-200" />
+                        </div>
+
+                        <span className="text-sm font-black bg-primary/10 text-primary py-2 px-6 rounded-2xl border border-primary/20 shadow-sm">
+                            @{teamSlug}
+                        </span>
+                    </div>
                 </CardHeader>
                 <CardContent className="pb-6">
                     {step === 1 && (
@@ -203,11 +222,14 @@ export default function InvitationPage() {
                                     {...registerCode('code')}
                                     placeholder="由教練提供的 4 位數代碼"
                                     className="text-center text-lg tracking-widest"
+                                    disabled={isInvitationDisabled}
                                 />
-                                {codeErrors.code && <p className="text-sm text-destructive">{codeErrors.code.message}</p>}
+                                {codeErrors.code && <p className="text-sm text-destructive font-bold">{codeErrors.code.message}</p>}
                             </div>
-                            <Button type="submit" className="w-full">
-                                下一步 <ArrowRight className="ml-2 h-4 w-4" />
+                            <Button type="submit" className="w-full" disabled={isInvitationDisabled}>
+                                {isInvitationDisabled ? '停止招募' : (
+                                    <>下一步 <ArrowRight className="ml-2 h-4 w-4" /></>
+                                )}
                             </Button>
                         </form>
                     )}
@@ -227,7 +249,7 @@ export default function InvitationPage() {
                                     <UserPlus className="h-5 w-5 text-primary" />
                                 </div>
                                 <div className="text-left">
-                                    <div className="font-medium">我是新球員</div>
+                                    <div className="font-medium">我是新選手</div>
                                     <div className="text-xs text-muted-foreground">名單上找不到我，我要建立新資料</div>
                                 </div>
                             </Button>
@@ -257,7 +279,7 @@ export default function InvitationPage() {
                                 ))}
                                 {availablePlayers.length === 0 && (
                                     <p className="text-center text-sm text-muted-foreground py-4">
-                                        沒有可認領的球員資料
+                                        沒有可認領的選手資料
                                     </p>
                                 )}
                             </div>
@@ -271,7 +293,7 @@ export default function InvitationPage() {
                                     {isModeNew ? <UserPlus className="h-8 w-8" /> : <UserCheck className="h-8 w-8" />}
                                 </div>
                                 <h3 className="font-medium">
-                                    {isModeNew ? '建立新球員資料' : `認領身分：${selectedPlayer?.name}`}
+                                    {isModeNew ? '建立新選手資料' : `認領身分：${selectedPlayer?.name}`}
                                 </h3>
                             </div>
 

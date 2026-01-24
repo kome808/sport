@@ -21,6 +21,14 @@ export default function PlayerLoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
+    // Demo Mode Auto-fill
+    const isDemo = teamSlug === 'doraemon-baseball';
+    useEffect(() => {
+        if (isDemo) {
+            setPassword('1234');
+        }
+    }, [isDemo]);
+
     // 取得球隊資料
     const { data: team } = useTeam(teamSlug || '');
 

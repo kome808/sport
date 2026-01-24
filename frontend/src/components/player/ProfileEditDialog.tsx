@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useUpdatePlayerProfile } from '@/hooks/usePlayer';
 
-// Player mode: requires old password for any changes
+// Player mode: old password only required when changing to new password
 const playerProfileSchema = z.object({
     name: z.string().min(2, '姓名至少 2 個字'),
     jersey_number: z.string().optional(),
@@ -25,9 +25,18 @@ const playerProfileSchema = z.object({
     height_cm: z.string().optional(),
     weight_kg: z.string().optional(),
     birth_date: z.string().optional(),
-    old_password: z.string().min(1, '請輸入舊密碼以進行驗證'),
+    old_password: z.string().optional(),
     new_password: z.string().optional(),
     confirm_new_password: z.string().optional(),
+}).refine((data) => {
+    // 若填寫了新密碼，則必須填寫舊密碼
+    if (data.new_password && data.new_password.length > 0) {
+        return !!data.old_password && data.old_password.length > 0;
+    }
+    return true;
+}, {
+    message: "變更密碼前請先輸入舊密碼",
+    path: ["old_password"],
 }).refine((data) => {
     if (data.new_password && data.new_password !== data.confirm_new_password) {
         return false;
@@ -80,7 +89,7 @@ interface ProfileEditDialogProps {
 export function ProfileEditDialog({ open, onOpenChange, mode = 'player', player }: ProfileEditDialogProps) {
     const updateProfile = useUpdatePlayerProfile();
 
-    const { register, handleSubmit, formState: { errors }, reset } = useForm<ProfileFormData>({
+    const { register, handleSubmit, formState: { errors }, reset, watch } = useForm<ProfileFormData>({
         resolver: zodResolver(mode === 'coach' ? coachProfileSchema : playerProfileSchema),
         defaultValues: {
             name: '',
@@ -111,6 +120,9 @@ export function ProfileEditDialog({ open, onOpenChange, mode = 'player', player 
             });
         }
     }, [open, player, mode, reset]);
+
+    const newPasswordValue = watch('new_password');
+    const isChangingPassword = !!newPasswordValue && newPasswordValue.length > 0;
 
     const onSubmit = async (data: ProfileFormData) => {
         try {
@@ -147,7 +159,7 @@ export function ProfileEditDialog({ open, onOpenChange, mode = 'player', player 
                     <DialogDescription>
                         {mode === 'coach'
                             ? '教練可以直接修改球員資料。若需要重設密碼，請輸入新密碼即可。'
-                            : '請輸入舊密碼以確認變更。若不想修改密碼，新密碼欄位請留空。'
+                            : '您可以直接修改個人基本資料。若要「變更密碼」，才需要輸入舊密碼進行驗證。'
                         }
                     </DialogDescription>
                 </DialogHeader>
@@ -200,27 +212,33 @@ export function ProfileEditDialog({ open, onOpenChange, mode = 'player', player 
 
                     {mode === 'coach' && <div className="border-t my-4" />}
 
-                    {/* Password Section - Different for coach vs player */}
-                    {mode === 'player' ? (
-                        <>
-                            <div className="border-t my-4" />
-                            {/* 舊密碼 - Only for player mode */}
+                    {/* Password Section - Only show old_password if needed or if changing password */}
+                    {mode === 'player' && (
+                        <div className={`space-y-4 pt-4 border-t transition-all ${isChangingPassword ? 'opacity-100' : 'opacity-40'}`}>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Lock className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-bold">帳號安全設定</span>
+                            </div>
+
+                            {/* 舊密碼 - Only for player mode, only required if new_password is set */}
                             <div className="space-y-2">
-                                <Label htmlFor="old_password" className="flex items-center gap-2">
-                                    <Lock className="h-4 w-4" /> 舊密碼 (必填)
+                                <Label htmlFor="old_password" className={isChangingPassword ? 'text-primary' : 'text-slate-400'}>
+                                    舊密碼 {isChangingPassword ? '(變更密碼必填)' : '(僅在變更密碼時需要)'}
                                 </Label>
                                 <Input
                                     id="old_password"
                                     type="password"
                                     {...register('old_password' as any)}
-                                    placeholder="請輸入目前的密碼"
+                                    placeholder={isChangingPassword ? "請輸入目前的密碼" : "變更基本資料免填"}
+                                    className={!isChangingPassword ? 'bg-muted/50 cursor-not-allowed' : ''}
+                                    disabled={!isChangingPassword}
                                 />
-                                {'old_password' in errors && errors.old_password && (
+                                {errors && 'old_password' in errors && errors.old_password && (
                                     <p className="text-sm text-destructive">{(errors as any).old_password.message}</p>
                                 )}
                             </div>
-                        </>
-                    ) : null}
+                        </div>
+                    )}
 
                     {/* 新密碼 */}
                     <div className="space-y-2">

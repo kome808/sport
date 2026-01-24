@@ -39,6 +39,8 @@ export default function BatchAddPlayersPage() {
     const { data: team } = useTeam(teamSlug || '');
     const batchAddPlayers = useBatchAddPlayers();
 
+    const isDemo = teamSlug === 'doraemon-baseball';
+
     const [rows, setRows] = useState<PlayerRow[]>(
         Array(DEFAULT_ROWS_COUNT).fill(null).map(() => ({
             name: '',
@@ -76,6 +78,10 @@ export default function BatchAddPlayersPage() {
     };
 
     const handleSubmit = async () => {
+        if (isDemo) {
+            alert('展示模式無法新增球員');
+            return;
+        }
         if (!team?.id) return;
 
         // 過濾掉全空的列（必須有姓名才算一筆）
@@ -119,7 +125,7 @@ export default function BatchAddPlayersPage() {
                     <ChevronLeft className="h-4 w-4" />
                     返回列表
                 </Button>
-                <h1 className="text-3xl font-black text-black">批次新增球員</h1>
+                <h1 className="text-3xl font-black text-black">批次新增選手</h1>
                 <div className="w-24" /> {/* Spacer */}
             </div>
 
@@ -133,9 +139,24 @@ export default function BatchAddPlayersPage() {
 
             <Card className="rounded-3xl border-none shadow-2xl overflow-hidden">
                 <CardHeader className="bg-muted/30">
-                    <CardTitle className="text-xl font-bold text-black">球員資料表</CardTitle>
+                    <CardTitle className="text-xl font-bold text-black">選手資料表</CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
+                    <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                        <div className="text-sm text-blue-800">
+                            <p className="font-bold mb-1">隱私保護建議</p>
+                            <p>為了保護選手個人隱私，建議在「姓名」欄位使用<span className="font-extrabold mx-1">暱稱</span>或<span className="font-extrabold mx-1">代號</span>（例如：小明、A01），避免直接使用真實全名。</p>
+                        </div>
+                    </div>
+
+                    {isDemo && (
+                        <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-3">
+                            <AlertCircle className="h-5 w-5 text-amber-600" />
+                            <p className="font-bold text-amber-800">展示模式：僅供瀏覽，無法進行編輯操作</p>
+                        </div>
+                    )}
+
                     <div className="rounded-2xl border border-muted overflow-x-auto">
                         <Table>
                             <TableHeader className="bg-muted/50">
@@ -160,7 +181,8 @@ export default function BatchAddPlayersPage() {
                                             <Input
                                                 value={row.name}
                                                 onChange={(e) => handleInputChange(index, 'name', e.target.value)}
-                                                placeholder="例: 王小明"
+                                                placeholder="例: 王小明 (或A01)"
+                                                disabled={isDemo}
                                                 className="border-gray-300 focus:border-primary rounded-xl font-bold text-black bg-white"
                                             />
                                         </TableCell>
@@ -223,17 +245,17 @@ export default function BatchAddPlayersPage() {
                     </div>
 
                     <div className="mt-8 flex flex-col sm:flex-row justify-between gap-4">
-                        <Button variant="outline" onClick={addRow} className="gap-2 rounded-xl h-12 px-6 font-black border-gray-400 text-black hover:bg-gray-100">
+                        <Button variant="outline" onClick={addRow} disabled={isDemo} className="gap-2 rounded-xl h-12 px-6 font-black border-gray-400 text-black hover:bg-gray-100">
                             <Plus className="h-5 w-5" />
                             新增一行
                         </Button>
-                        <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-2 rounded-xl h-12 px-10 font-black shadow-xl shadow-primary/20">
+                        <Button onClick={handleSubmit} disabled={isSubmitting || isDemo} className="gap-2 rounded-xl h-12 px-10 font-black shadow-xl shadow-primary/20">
                             {isSubmitting ? (
                                 <Loader2 className="h-5 w-5 animate-spin" />
                             ) : (
                                 <Save className="h-5 w-5" />
                             )}
-                            儲存所有球員
+                            {isDemo ? '展示模式 (無法儲存)' : '儲存所有選手'}
                         </Button>
                     </div>
                 </CardContent>

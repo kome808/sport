@@ -8,7 +8,7 @@ import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Copy, Check, Info, Loader2, Save, Trash2, Shield, UserCog } from 'lucide-react';
+import { Copy, Check, Info, Loader2, Save, Trash2, Shield, UserCog, Pen, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,9 +57,12 @@ export default function TeamSettingsPage() {
     const { data: coaches, isLoading: isLoadingCoaches } = useTeamCoaches(team?.id);
     const removeCoachMutation = useRemoveCoach();
 
+    const isDemo = teamSlug === 'doraemon-baseball';
+
     const [isCopied, setIsCopied] = useState(false);
     const [isCoachLinkCopied, setIsCoachLinkCopied] = useState(false);
     const [coachToDelete, setCoachToDelete] = useState<string | null>(null);
+    const [isEditingName, setIsEditingName] = useState(false);
 
     const form = useForm<InvitationFormData>({
         resolver: zodResolver(invitationSchema),
@@ -166,19 +169,66 @@ export default function TeamSettingsPage() {
                     <CardContent className="px-6 py-6 space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="name">球隊名稱</Label>
-                            <Input
-                                id="name"
-                                {...form.register('name')}
-                                placeholder="輸入球隊名稱"
-                            />
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    id="name"
+                                    {...form.register('name')}
+                                    placeholder="輸入球隊名稱"
+                                    disabled={!isEditingName || isDemo}
+                                    className={`transition-colors ${!isEditingName || isDemo ? 'bg-slate-50 border-transparent cursor-default font-bold' : ''}`}
+                                />
+                                {isEditingName ? (
+                                    <>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            onClick={() => {
+                                                const currentName = form.getValues('name');
+                                                if (currentName !== team?.name) { // Only submit if changed
+                                                    form.handleSubmit(onSubmit)();
+                                                }
+                                                setIsEditingName(false);
+                                            }}
+                                            className="bg-green-600 hover:bg-green-700 h-10 w-10 shrink-0 rounded-lg"
+                                        >
+                                            <Check className="h-4 w-4 text-white" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => {
+                                                form.setValue('name', team?.name || '');
+                                                setIsEditingName(false);
+                                            }}
+                                            className="h-10 w-10 shrink-0 rounded-lg"
+                                        >
+                                            <X className="h-4 w-4 text-slate-500" />
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setIsEditingName(true);
+                                        }}
+                                        className="h-10 w-10 shrink-0 rounded-lg"
+                                    >
+                                        <Pen className="h-4 w-4 text-slate-500" />
+                                    </Button>
+                                )}
+                            </div>
                             {form.formState.errors.name && (
                                 <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
                             )}
                         </div>
 
-                        {/* 球員登入網址 */}
+                        {/* 選手登入網址 */}
                         <div className="space-y-2">
-                            <Label>球員登入網址</Label>
+                            <Label>選手登入網址</Label>
                             <div className="flex gap-2">
                                 <Input
                                     value={`${window.location.origin}/${teamSlug}/login`}
@@ -207,9 +257,11 @@ export default function TeamSettingsPage() {
                             </div>
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                                 <Info className="h-3 w-3" />
-                                球員使用此網址登入個人帳號
+                                選手使用此網址登入個人帳號
                             </p>
                         </div>
+
+
                     </CardContent>
                 </Card>
 
@@ -226,7 +278,7 @@ export default function TeamSettingsPage() {
                             )}
                         </CardTitle>
                         <CardDescription className="text-sm text-slate-500">
-                            設定球隊邀請連結與通行碼，讓學生自行加入
+                            設定球隊邀請連結與通行碼，讓選手自行加入
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="px-6 py-6 space-y-6">
@@ -235,7 +287,7 @@ export default function TeamSettingsPage() {
                             <div className="space-y-1">
                                 <Label className="text-base font-bold">啟用邀請連結</Label>
                                 <p className="text-sm text-muted-foreground">
-                                    關閉後，學生將無法透過連結加入球隊
+                                    關閉後，選手將無法透過連結加入球隊
                                 </p>
                             </div>
                             <div className="flex items-center h-full">
@@ -289,7 +341,7 @@ export default function TeamSettingsPage() {
                             </div>
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                                 <Info className="h-3 w-3" />
-                                學生點擊連結後，需輸入此通行碼才能加入
+                                選手點擊連結後，需輸入此通行碼才能加入
                             </p>
                             {form.formState.errors.invitation_code && (
                                 <p className="text-xs text-destructive">{form.formState.errors.invitation_code.message}</p>
@@ -297,13 +349,13 @@ export default function TeamSettingsPage() {
                         </div>
 
                         <div className="flex justify-end pt-6 border-t border-slate-100 mt-6">
-                            <Button type="submit" disabled={isPending} className="px-8 py-6 text-sm font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 transition-all active:scale-95 group">
+                            <Button type="submit" disabled={isPending || isDemo} className="px-8 py-6 text-sm font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 transition-all active:scale-95 group">
                                 {isPending ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 ) : (
                                     <Save className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
                                 )}
-                                儲存邀請設定
+                                {isDemo ? '展示模式 (無法儲存)' : '儲存邀請設定'}
                             </Button>
                         </div>
                     </CardContent>
@@ -422,7 +474,7 @@ export default function TeamSettingsPage() {
                         ) : (
                             <div className="space-y-4">
                                 {coaches?.map((coach) => (
-                                    <div key={coach.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 transition-all">
+                                    <div key={coach.coach_id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 transition-all">
                                         <div className="flex items-center gap-4">
                                             <div className="h-10 w-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-base">
                                                 {coach.name?.charAt(0) || coach.email.charAt(0)}
@@ -446,7 +498,7 @@ export default function TeamSettingsPage() {
                                                 size="icon"
                                                 className="h-9 w-9 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                                                 onClick={() => {
-                                                    setCoachToDelete(coach.id);
+                                                    setCoachToDelete(coach.coach_id);
                                                 }}
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -479,6 +531,6 @@ export default function TeamSettingsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+        </div >
     );
 }

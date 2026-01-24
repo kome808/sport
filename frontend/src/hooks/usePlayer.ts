@@ -151,6 +151,8 @@ export function usePlayer(playerCode: string | undefined) {
 // ================================================
 
 export function useUpdatePlayerProfile() {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: async ({ playerId, oldPassword, name, jerseyNumber, position, height_cm, weight_kg, newPassword, birth_date }: any) => {
             const { data, error } = await supabase.rpc('update_player_profile', {
@@ -159,8 +161,8 @@ export function useUpdatePlayerProfile() {
                 name,
                 jersey_number: jerseyNumber,
                 position,
-                height_cm,
-                weight_kg,
+                height_cm: height_cm || null,
+                weight_kg: weight_kg || null,
                 new_password: newPassword || null,
                 birth_date: birth_date || null
             });
@@ -169,8 +171,7 @@ export function useUpdatePlayerProfile() {
             return data;
         },
         onSuccess: (data) => {
-            // 可以選擇更新 Session，雖然 Session 通常只存 ID
-            // 如果 Session 有存 Name，這裡可以更新
+            // 更新 Session 儲存
             const stored = localStorage.getItem(SESSION_KEY);
             if (stored) {
                 const session = JSON.parse(stored);
@@ -178,10 +179,14 @@ export function useUpdatePlayerProfile() {
                     session.playerName = data.name;
                     session.jerseyNumber = data.jersey_number;
                     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-                    // Force reload or create context update? For now simple storage update.
-                    // A better way is to rely on react-query invalidation.
                 }
             }
+
+            // 強制刷新快取，讓頁面資料即時更新
+            queryClient.invalidateQueries({ queryKey: ['player'] });
+
+            // 如果是在球員個人首頁，通常也會用到這些 key
+            queryClient.invalidateQueries({ queryKey: ['playerRecord'] });
         }
     });
 }

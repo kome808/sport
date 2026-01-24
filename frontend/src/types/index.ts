@@ -134,19 +134,19 @@ export interface FatigueMetrics {
         short_term_load: number;
         long_term_load: number;
         acwr: number | null;
-        risk_level: 'green' | 'yellow' | 'red' | 'gray';
+        risk_level: 'green' | 'yellow' | 'red' | 'black' | 'gray';
     };
     psi: {
         psi_score: number;
         wellness_component: number;
         load_component: number;
-        status: 'green' | 'yellow' | 'red' | 'gray';
+        status: 'green' | 'yellow' | 'red' | 'black' | 'gray';
     };
     rhr: {
         baseline_rhr: number | null;
         current_rhr: number | null;
         difference: number | null;
-        status: 'green' | 'yellow' | 'orange' | 'red' | 'gray';
+        status: 'green' | 'yellow' | 'orange' | 'red' | 'black' | 'gray';
         risk_level?: string;
     };
     wellness: {
@@ -158,14 +158,14 @@ export interface FatigueMetrics {
             stress: number;
             soreness: number;
         };
-        status: 'green' | 'yellow' | 'red' | 'gray';
+        status: 'green' | 'yellow' | 'red' | 'black' | 'gray';
         risk_level?: string;
     } | null;
     srpe: {
         score: number;
         minutes: number;
         load_au: number;
-        status: 'green' | 'yellow' | 'red' | 'gray';
+        status: 'green' | 'yellow' | 'red' | 'black' | 'gray';
         risk_level?: string;
     } | null;
     honesty: {

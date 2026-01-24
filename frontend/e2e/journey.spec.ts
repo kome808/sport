@@ -65,7 +65,7 @@ test.describe('Coach to Player Journey', () => {
         }
 
         // 7. Click Save
-        await page.click('button:has-text("儲存所有球員")');
+        await page.click('button:has-text("儲存所有選手")');
 
         // 8. Expect redirect to players list
         await expect(page).toHaveURL(/\/dragons\/players/);

@@ -15,16 +15,10 @@ export function FatigueRadarChart({ data }: FatigueRadarChartProps) {
     // 轉換數據格式適配 Nivo Radar
     // 原始數據: 1-5
     // Sleep: 5=Best, 1=Worst
-    // Fatigue: 1=Best, 5=Worst (Need Invert?) -> 
-    //   Usually in Wellness questionnaires:
-    //   Sleep Quality: 5=Very Good
-    //   Fatigue: 5=Very Fresh (Low Fatigue), 1=Very Tired (High Fatigue) 
-    //   Mood: 5=Very Good
-    //   Stress: 5=Very Relaxed (Low Stress), 1=Very Stressed
-    //   Soreness: 5=No Soreness, 1=Very Sore
-    // 如果系統的數據定義是 "分數越高越好" (Wellness Total 越高越好)，則直接使用即可。
-    // 根據 check_honesty_score RPG, fatigue_level 1-5, sRPE high vs fatigue low ??
-    // Let's assume standard wellness: Higher is Better.
+    // Fatigue: 5=Very Fresh (Low Fatigue), 1=Very Tired (High Fatigue) 
+    // Mood: 5=Very Good
+    // Stress: 5=Very Relaxed (Low Stress), 1=Very Stressed
+    // Soreness: 5=No Soreness, 1=Very Sore
 
     const chartData = [
         { metric: '睡眠', value: data.sleep || 0 },
@@ -54,7 +48,7 @@ export function FatigueRadarChart({ data }: FatigueRadarChartProps) {
                 indexBy="metric"
                 maxValue={5}
                 valueFormat=">-.2f"
-                margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
+                margin={{ top: 25, right: 35, bottom: 25, left: 35 }}
                 borderColor={{ from: 'color' }}
                 gridLabelOffset={16} // 標籤距離
                 dotSize={10}

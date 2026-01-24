@@ -3,85 +3,53 @@
  * 處理 Google OAuth 登入後的 redirect
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { supabase, SCHEMA_NAME } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export default function AuthCallbackPage() {
     const navigate = useNavigate();
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        let isMounted = true;
+
         const handleCallback = async () => {
             try {
-                // 等待 Supabase 處理 OAuth callback (URL hash 中的 token)
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                // 處理 PKCE 驗證碼交換
+                const url = new URL(window.location.href);
+                const code = url.searchParams.get('code');
 
-                if (sessionError) {
-                    throw sessionError;
+                if (code) {
+                    // 交換 session，並不論結果如何都嘗試導向（client 背景也會處理）
+                    await supabase.auth.exchangeCodeForSession(code).catch(() => { });
+
+                    // 清理網址參數
+                    url.searchParams.delete('code');
+                    url.searchParams.delete('error');
+                    url.searchParams.delete('error_description');
+                    window.history.replaceState({}, document.title, url.toString());
                 }
 
-                if (!session?.user) {
-                    throw new Error('無法取得登入資訊');
+                if (isMounted) {
+                    navigate('/dashboard', { replace: true });
                 }
-
-                // 確保 sport.coaches 資料存在
-                const email = session.user.email;
-                const name = session.user.user_metadata?.full_name ||
-                    session.user.user_metadata?.name ||
-                    email?.split('@')[0] || '教練';
-
-                await supabase
-                    .schema(SCHEMA_NAME)
-                    .from('coaches')
-                    .upsert({
-                        id: session.user.id,
-                        email,
-                        name
-                    }, { onConflict: 'id' });
-
-                // 查詢教練自己所屬的球隊
-                const { data: teams } = await supabase
-                    .schema(SCHEMA_NAME)
-                    .from('teams')
-                    .select('slug')
-                    .eq('coach_id', session.user.id)
-                    .limit(1);
-
-                if (teams && teams.length > 0) {
-                    navigate(`/${teams[0].slug}`, { replace: true });
-                } else {
-                    navigate('/team/setup', { replace: true });
+            } catch (err) {
+                console.error('Auth callback redirect error:', err);
+                if (isMounted) {
+                    navigate('/dashboard', { replace: true });
                 }
-
-            } catch (err: any) {
-                console.error('Auth callback error:', err);
-                setError(err.message || '登入處理失敗');
             }
         };
 
         handleCallback();
+        return () => { isMounted = false; };
     }, [navigate]);
 
-    if (error) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-                <p className="text-destructive">{error}</p>
-                <button
-                    onClick={() => navigate('/login')}
-                    className="text-primary hover:underline"
-                >
-                    返回登入頁
-                </button>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">正在完成登入...</p>
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm text-slate-500 font-medium">正在進入系統...</p>
         </div>
     );
 }

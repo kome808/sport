@@ -123,16 +123,17 @@ export default function FatigueDashboard({
                     centerValue={true}
                     className="h-full"
                 >
-                    <div className="relative w-full h-full flex items-center justify-center min-h-[200px] max-h-[240px]">
+                    <div className="relative w-full h-full flex items-center justify-center min-h-[260px] max-h-[320px]">
                         {metrics.wellness && metrics.wellness.items ? (
-                            <div className="relative w-full h-full max-w-[240px] max-h-[240px] flex items-center justify-center">
+                            <div className="relative w-full h-full max-w-[340px] max-h-[340px] flex items-center justify-center">
                                 {/* Score Overlay in Middle of Radar */}
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center pointer-events-none w-16 h-16 rounded-full bg-white/40 backdrop-blur-md shadow-lg border-2 border-white/60">
                                     <span className={cn(
-                                        "text-3xl font-black tracking-tighter leading-none",
+                                        "text-4xl font-black tracking-tighter leading-none",
                                         metrics.wellness.status === 'gray' ? "text-slate-400" :
-                                            metrics.wellness.total >= 20 ? "text-status-low-dark" :
-                                                metrics.wellness.total >= 15 ? "text-status-med-dark" : "text-status-high-dark"
+                                            metrics.wellness.status === 'black' ? "text-white" :
+                                                metrics.wellness.total >= 20 ? "text-status-low-dark" :
+                                                    metrics.wellness.total >= 15 ? "text-status-med-dark" : "text-status-high-dark"
                                     )}>
                                         {metrics.wellness.total}
                                     </span>

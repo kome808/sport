@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Loader2, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { usePlayer, useSubmitDailyRecord, useSubmitPainReport, usePlayerRecordByDate, usePlayerPainReports, useResolvePainReport, usePlayerSession } from '@/hooks/usePlayer';
 import BodyMapSelector from '@/components/player/BodyMapSelector';
+import MetricDetailDialog from '@/components/fatigue/MetricDetailDialog';
 import { type PainStatus } from '@/components/records/PainStatusDialog';
 import { BODY_PATHS } from '@/components/player/BodyMapPaths';
 import { format } from 'date-fns';
@@ -72,6 +73,7 @@ export default function PlayerReportPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(today);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isConfirming, setIsConfirming] = useState(false); // Confirmation State
+    const [tabValue, setTabValue] = useState('training');
 
     const handleQuickStatusUpdate = (status: PainStatus, report: any) => {
         if (status === 'recovered') {
@@ -83,10 +85,7 @@ export default function PlayerReportPage() {
             setDescription(report.description || '');
 
             // Switch to injury tab
-            const injuryTabTrigger = document.querySelector('button[value="injury"]') as HTMLElement;
-            if (injuryTabTrigger) {
-                injuryTabTrigger.click();
-            }
+            setTabValue('injury');
 
             // Scroll to injury section
             setTimeout(() => {
@@ -132,6 +131,15 @@ export default function PlayerReportPage() {
     const [illnessDescription, setIllnessDescription] = useState('');
     const [doctorNote, setDoctorNote] = useState('');
     const [feedback, setFeedback] = useState('');
+
+    // 指標說明彈窗狀態
+    const [infoMetric, setInfoMetric] = useState<'rhr' | 'wellness' | 'srpe' | null>(null);
+    const [isInfoOpen, setIsInfoOpen] = useState(false);
+
+    const openInfo = (metric: 'rhr' | 'wellness' | 'srpe') => {
+        setInfoMetric(metric);
+        setIsInfoOpen(true);
+    };
 
     useEffect(() => {
         // Reset form
@@ -203,7 +211,18 @@ export default function PlayerReportPage() {
     }, [dailyRecord, painReports, selectedDate]);
 
     const handleInitialSubmit = () => {
-        // Here we could add validation if needed
+        // 驗證 sRPE：如果有填時間但沒選強度
+        const hasTime = (parseInt(trainingHours) > 0 || parseInt(trainingMinutes) > 0);
+        if (hasTime && !trainingIntensity) {
+            alert('請選擇「今日訓練強度」，以免訓練負荷計算為 0');
+            // 捲動到訓練負荷區域
+            const srpeSection = document.getElementById('srpe-section');
+            if (srpeSection) {
+                srpeSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
         setIsConfirming(true);
         window.scrollTo(0, 0);
     };
@@ -425,23 +444,34 @@ export default function PlayerReportPage() {
                 </Card>
             )}
 
-            <Button
-                onClick={handleFinalSubmit}
-                className="w-full bg-gradient-to-r from-primary to-primary-hover hover:from-primary-hover hover:to-primary shadow-lg shadow-primary/20 font-black h-14 text-lg rounded-2xl"
-                disabled={isSubmitting}
-            >
-                {isSubmitting ? (
-                    <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        處理中...
-                    </>
-                ) : (
-                    <>
-                        <CheckCircle2 className="mr-2 h-5 w-5" />
-                        確認無誤，送出儲存
-                    </>
-                )}
-            </Button>
+            {/* Demo Mode Button */}
+            {teamSlug === 'doraemon-baseball' ? (
+                <Button
+                    disabled
+                    className="w-full bg-slate-100 text-slate-400 font-bold h-14 text-lg rounded-2xl border-2 border-slate-200"
+                >
+                    <Lock className="mr-2 h-5 w-5" />
+                    展示模式 (無法送出)
+                </Button>
+            ) : (
+                <Button
+                    onClick={handleFinalSubmit}
+                    className="w-full bg-gradient-to-r from-primary to-primary-hover hover:from-primary-hover hover:to-primary shadow-lg shadow-primary/20 font-black h-14 text-lg rounded-2xl"
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? (
+                        <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            處理中...
+                        </>
+                    ) : (
+                        <>
+                            <CheckCircle2 className="mr-2 h-5 w-5" />
+                            確認無誤，送出儲存
+                        </>
+                    )}
+                </Button>
+            )}
             <div className="h-8" />
         </div>
     );
@@ -552,7 +582,7 @@ export default function PlayerReportPage() {
 
 
             {/* Tabs for different sections */}
-            <Tabs defaultValue="training" className="w-full">
+            <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 p-1.5 bg-white/50 backdrop-blur-md rounded-[2rem] border border-slate-200/50 shadow-sm h-auto gap-2">
                     <TabsTrigger value="training" className="rounded-[1.5rem] py-3 data-[state=active]:!bg-[#7367F0] data-[state=active]:!text-white shadow-none transition-all font-black">
                         訓練負荷
@@ -567,9 +597,20 @@ export default function PlayerReportPage() {
                     {/* RHR Section */}
                     <Card className="rounded-[2rem] border-2 border-slate-100 shadow-lg">
                         <CardContent className="p-6 space-y-4">
-                            <div className="flex items-center gap-3">
-                                <span className="text-3xl">❤️</span>
-                                <h3 className="font-bold text-xl">晨間心跳 RHR</h3>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-3xl">❤️</span>
+                                    <h3 className="font-bold text-xl">晨間心跳 RHR</h3>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 px-2 text-[10px] font-black text-primary border-primary/20 hover:bg-primary/10 hover:border-primary/40 rounded-lg"
+                                    onClick={() => openInfo('rhr')}
+                                    type="button"
+                                >
+                                    指標說明
+                                </Button>
                             </div>
                             <Separator />
                             <div className="space-y-2">
@@ -598,9 +639,20 @@ export default function PlayerReportPage() {
                     {/* Wellness Section */}
                     <Card className="rounded-[2rem] border-2 border-slate-100 shadow-lg">
                         <CardContent className="p-6 space-y-4">
-                            <div className="flex items-center gap-3">
-                                <span className="text-3xl">🧠</span>
-                                <h3 className="font-bold text-xl">身心狀態 Wellness</h3>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-3xl">🧠</span>
+                                    <h3 className="font-bold text-xl">身心狀態 Wellness</h3>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 px-2 text-[10px] font-black text-primary border-primary/20 hover:bg-primary/10 hover:border-primary/40 rounded-lg"
+                                    onClick={() => openInfo('wellness')}
+                                    type="button"
+                                >
+                                    指標說明
+                                </Button>
                             </div>
                             <Separator />
                             <div className="space-y-6">
@@ -650,10 +702,21 @@ export default function PlayerReportPage() {
 
                     {/* Training Load Section */}
                     <Card className="rounded-[2rem] border-2 border-slate-100 shadow-lg">
-                        <CardContent className="p-6 space-y-4">
-                            <div className="flex items-center gap-3">
-                                <span className="text-3xl">🏃</span>
-                                <h3 className="font-bold text-xl">今日訓練負荷 sRPE</h3>
+                        <CardContent className="p-6 space-y-4" id="srpe-section">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-3xl">🏃</span>
+                                    <h3 className="font-bold text-xl">今日訓練負荷 sRPE</h3>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 px-2 text-[10px] font-black text-primary border-primary/20 hover:bg-primary/10 hover:border-primary/40 rounded-lg"
+                                    onClick={() => openInfo('srpe')}
+                                    type="button"
+                                >
+                                    指標說明
+                                </Button>
                             </div>
                             <Separator />
                             <div className="grid grid-cols-2 gap-4">
@@ -879,6 +942,12 @@ export default function PlayerReportPage() {
     return (
         <div className="min-h-screen bg-[#F4F4F7] py-8 px-4">
             {isConfirming ? renderConfirmation() : renderForm()}
+            <MetricDetailDialog
+                open={isInfoOpen}
+                onOpenChange={setIsInfoOpen}
+                metricType={infoMetric}
+                data={null}
+            />
         </div >
     );
 }

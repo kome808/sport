@@ -12,8 +12,11 @@ import {
     LogOut,
     Menu,
     ChevronRight,
+    ChevronsUpDown,
+    PlusCircle,
     BookOpen,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -23,7 +26,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TooltipProvider } from '@/components/ui/tooltip';
 // import NotificationBell from '@/components/dashboard/NotificationBell';
-import { useTeam } from '@/hooks/useTeam';
+import { useTeam, useMyTeams } from '@/hooks/useTeam';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -43,7 +46,7 @@ const menuItems = [
         path: '',
     },
     {
-        title: '球員管理 Players',
+        title: '選手管理 Players',
         icon: Users,
         path: '/players',
     },
@@ -67,7 +70,9 @@ const menuItems = [
 
 export default function DashboardLayout() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
+    const navigate = useNavigate();
     const { data: teamData, isLoading: isTeamLoading } = useTeam(teamSlug || '');
+    const { data: myTeams, isLoading: isMyTeamsLoading } = useMyTeams();
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -119,25 +124,58 @@ export default function DashboardLayout() {
                 </div>
             </div>
 
-            {/* 球隊資訊 */}
+            {/* 球隊資訊 (Team Switcher) */}
             <div className="border-b p-4">
-                <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
-                        {teamData?.avatar_url ? (
-                            <img src={teamData.avatar_url} alt={teamData.name} className="h-full w-full rounded-full object-cover" />
-                        ) : (
-                            <Users className="h-6 w-6 text-slate-700" />
-                        )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm truncate text-slate-900">
-                            {isTeamLoading ? '載入中...' : (teamData?.name || '無選取球隊')}
-                        </p>
-                        <p className="text-xs font-medium text-slate-500">
-                            {teamSlug ? `/${teamSlug}` : '/---'}
-                        </p>
-                    </div>
-                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button className="flex w-full items-center gap-3 rounded-xl p-2 hover:bg-slate-100 transition-colors outline-none group">
+                            <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 overflow-hidden">
+                                {teamData?.avatar_url ? (
+                                    <img src={teamData.avatar_url} alt={teamData.name} className="h-full w-full object-cover" />
+                                ) : (
+                                    <Users className="h-5 w-5 text-slate-700" />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0 text-left">
+                                <p className="font-bold text-sm truncate text-slate-900 group-hover:text-primary transition-colors">
+                                    {isTeamLoading ? '載入中...' : (teamData?.name || '無選取球隊')}
+                                </p>
+                                <p className="text-xs font-medium text-slate-500 truncate">
+                                    {teamSlug ? `/${teamSlug}` : '/---'}
+                                </p>
+                            </div>
+                            <ChevronsUpDown className="h-4 w-4 text-slate-400" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="start">
+                        <DropdownMenuLabel className="text-xs text-muted-foreground">切換球隊</DropdownMenuLabel>
+                        {myTeams?.map((team) => (
+                            <DropdownMenuItem
+                                key={team.team_id}
+                                className="gap-2 cursor-pointer"
+                                onClick={() => {
+                                    navigate(`/${team.slug}`);
+                                    setIsSidebarOpen(false);
+                                }}
+                            >
+                                <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 overflow-hidden text-[10px]">
+                                    {team.logo_url ? (
+                                        <img src={team.logo_url} alt={team.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                        team.name.charAt(0)
+                                    )}
+                                </div>
+                                <span className={team.slug === teamSlug ? 'font-bold' : ''}>{team.name}</span>
+                                {team.slug === teamSlug && <ChevronRight className="ml-auto h-3 w-3" />}
+                            </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="gap-2 cursor-pointer text-primary focus:text-primary" onClick={() => navigate('/team/setup')}>
+                            <PlusCircle className="h-4 w-4" />
+                            <span>建立或加入球隊</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             {/* 導航選單 */}

@@ -36,7 +36,7 @@ export function useTeam(slug: string) {
                 .limit(1);
 
             if (error) throw error;
-            return data?.[0] as Team | null;
+            return (data?.[0] ?? null) as Team | null;
         },
         enabled: !!slug,
     });
@@ -706,7 +706,15 @@ export function useTeamCoaches(teamId: string | undefined) {
             if (!teamId) return [];
             const { data, error } = await supabase.rpc('get_team_coaches', { team_id: teamId });
             if (error) throw error;
-            return (data || []) as (import('@/types').Coach & { role: 'owner' | 'admin' | 'member', joined_at: string })[];
+            // RPC 回傳的是 coach_id, name, email, avatar_url, role, joined_at
+            return (data || []) as {
+                coach_id: string;
+                name: string;
+                email: string;
+                avatar_url: string | null;
+                role: 'owner' | 'admin' | 'member';
+                joined_at: string;
+            }[];
         },
         enabled: !!teamId,
     });
@@ -738,6 +746,22 @@ export function useValidateCoachInvitation() {
             const { data, error } = await supabase.rpc('validate_coach_invitation_code', { code });
             if (error) throw error;
             return data?.[0];
+        },
+    });
+}
+export function useMyTeams() {
+    return useQuery({
+        queryKey: ['myTeams'],
+        queryFn: async () => {
+            const { data, error } = await supabase.rpc('get_my_teams');
+            if (error) throw error;
+            return (data || []) as {
+                team_id: string;
+                name: string;
+                slug: string;
+                logo_url: string | null;
+                role: string;
+            }[];
         },
     });
 }

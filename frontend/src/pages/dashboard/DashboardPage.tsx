@@ -289,9 +289,12 @@ export default function DashboardPage() {
                     <CardContent>
                         {(sortedFatigueData.filter(d =>
                             d.metrics.acwr.risk_level === 'red' ||
-                            d.metrics.rhr.status === 'red' ||
-                            d.metrics.wellness?.status === 'red' ||
-                            d.metrics.srpe?.status === 'red'
+                            d.metrics.acwr.risk_level === 'black' ||
+                            d.metrics.rhr.risk_level === 'red' ||
+                            d.metrics.rhr.risk_level === 'black' ||
+                            d.metrics.wellness?.risk_level === 'red' ||
+                            d.metrics.wellness?.risk_level === 'black' ||
+                            d.metrics.srpe?.risk_level === 'red'
                         ).length)}
                         <p className="text-xs font-medium text-slate-600 mt-1">需要關注</p>
                     </CardContent>
@@ -333,16 +336,22 @@ export default function DashboardPage() {
                         <div className="flex flex-wrap gap-4">
                             {sortedFatigueData.filter(d =>
                                 d.metrics.acwr.risk_level === 'red' ||
-                                d.metrics.rhr.status === 'red' ||
-                                d.metrics.wellness?.status === 'red' ||
-                                d.metrics.srpe?.status === 'red'
+                                d.metrics.acwr.risk_level === 'black' ||
+                                d.metrics.rhr.risk_level === 'red' ||
+                                d.metrics.rhr.risk_level === 'black' ||
+                                d.metrics.wellness?.risk_level === 'red' ||
+                                d.metrics.wellness?.risk_level === 'black' ||
+                                d.metrics.srpe?.risk_level === 'red'
                             ).length > 0 ? (
                                 sortedFatigueData
                                     .filter(d =>
                                         d.metrics.acwr.risk_level === 'red' ||
-                                        d.metrics.rhr.status === 'red' ||
-                                        d.metrics.wellness?.status === 'red' ||
-                                        d.metrics.srpe?.status === 'red'
+                                        d.metrics.acwr.risk_level === 'black' ||
+                                        d.metrics.rhr.risk_level === 'red' ||
+                                        d.metrics.rhr.risk_level === 'black' ||
+                                        d.metrics.wellness?.risk_level === 'red' ||
+                                        d.metrics.wellness?.risk_level === 'black' ||
+                                        d.metrics.srpe?.risk_level === 'red'
                                     )
                                     .map((data) => {
                                         // 決定顯示哪個風險標籤
@@ -371,9 +380,8 @@ export default function DashboardPage() {
                                             >
                                                 <div className={cn(
                                                     "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all shadow-md border border-white/20 relative group-hover:scale-105 group-hover:shadow-lg z-10",
-                                                    "bg-status-high"
+                                                    data.metrics.acwr.risk_level === 'black' || data.metrics.rhr.risk_level === 'black' ? "bg-slate-900" : "bg-red-500"
                                                 )}
-                                                    style={{ boxShadow: '0 8px 20px -5px var(--color-status-high)' }}
                                                 >
                                                     <div className="text-3xl font-black opacity-10 absolute top-2 right-3 text-white">!</div>
 
@@ -615,6 +623,9 @@ export default function DashboardPage() {
                                     maxRisk = 0;
                                 }
 
+                                // 額外判定是否要使用黑色背景 (黑代表極高)
+                                const isBlack = data.metrics.acwr.risk_level === 'black' || data.metrics.rhr.risk_level === 'black';
+
                                 return (
                                     <Link
                                         key={data.player.id}
@@ -623,21 +634,18 @@ export default function DashboardPage() {
                                     >
                                         <div
                                             className={cn(
-                                                "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all shadow-sm border border-black/5 relative group-hover:scale-105 group-hover:shadow-lg z-10",
-                                                maxRisk === 0 ? "bg-slate-100 border-slate-200" : "",
-                                                maxRisk === 3 && "bg-status-high text-white",
-                                                maxRisk === 2 && "bg-status-med text-slate-900",
-                                                maxRisk === 1 && "bg-status-low text-slate-900"
+                                                "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all shadow-sm border relative group-hover:scale-105 group-hover:shadow-lg z-10",
+                                                maxRisk === 0 && "bg-slate-100 border-slate-200",
+                                                isBlack && "bg-slate-950 border-slate-800",
+                                                !isBlack && maxRisk === 3 && "bg-red-500 border-red-600",
+                                                !isBlack && maxRisk === 2 && "bg-amber-400 border-amber-500",
+                                                !isBlack && maxRisk === 1 && "bg-green-400 border-green-500"
                                             )}
-                                            style={maxRisk > 0 ? {
-                                                boxShadow: `0 4px 12px -2px var(--color-status-${maxRisk === 3 ? 'high' : maxRisk === 2 ? 'med' : 'low'})`
-                                            } : undefined}
                                         >
                                             <span className={cn(
-                                                "font-bold text-center w-full px-1 truncate",
-                                                data.player.name.length > 3 ? "text-xs" : "text-sm",
-                                                maxRisk === 3 ? "text-white" :
-                                                    (maxRisk === 0) ? "text-slate-500" : "text-black"
+                                                "font-black text-center w-full px-1 truncate leading-none",
+                                                data.player.name.length > 3 ? "text-[10px]" : "text-xs",
+                                                (maxRisk === 3 || isBlack) ? "text-white" : "text-slate-900"
                                             )}>
                                                 {data.player.name}
                                             </span>
