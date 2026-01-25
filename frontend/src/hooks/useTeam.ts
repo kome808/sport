@@ -55,7 +55,6 @@ export function useTeam(slug: string) {
             return (data?.[0] ?? null) as Team | null;
         },
         enabled: !!slug,
-        staleTime: 1000 * 60 * 5, // 5 分鐘快取
     });
 }
 

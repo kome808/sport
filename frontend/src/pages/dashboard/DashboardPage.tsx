@@ -31,6 +31,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTeam, useTeamStats, useTeamFatigueOverview, usePlayers, useTeamActivePainReports } from '@/hooks/useTeam';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
@@ -46,23 +47,27 @@ BODY_PART_MAP['other'] = '其他部位';
 
 export default function DashboardPage() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
+    const { isLoading: isAuthLoading, user } = useAuth();
     const [selectedPeriod, setSelectedPeriod] = useState('7d');
 
+    // 重要：確保身份驗證完成後才發起請求
+    const isReady = !isAuthLoading && !!user;
+
     // 取得球隊資料
-    const { data: team, isLoading: teamLoading } = useTeam(teamSlug || '');
+    const { data: team, isLoading: teamLoading } = useTeam((isReady && teamSlug) ? teamSlug : '');
     const teamId = team?.id;
 
     // 取得統計資料
-    const { data: stats, isLoading: statsLoading } = useTeamStats(teamId);
+    const { data: stats, isLoading: statsLoading } = useTeamStats(isReady ? teamId : undefined);
 
     // 取得球員詳細資料 (為了排序用，含生日)
-    const { data: players } = usePlayers(teamId);
+    const { data: players } = usePlayers(isReady ? teamId : undefined);
 
     // 取得全隊疲勞指標
-    const { data: fatigueData, isLoading: fatigueLoading } = useTeamFatigueOverview(teamId);
+    const { data: fatigueData, isLoading: fatigueLoading } = useTeamFatigueOverview(isReady ? teamId : undefined);
 
     // 取得現有傷病列表
-    const { data: activePainReports } = useTeamActivePainReports(teamId);
+    const { data: activePainReports } = useTeamActivePainReports(isReady ? teamId : undefined);
 
     // 狀態：測試數據生成與對話框
     const [isGenerating, setIsGenerating] = useState(false);
