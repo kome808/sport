@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, LayoutDashboard, Users, LogOut, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ const ADMIN_EMAIL = 'kome808@gmail.com';
 
 export default function AdminLayout() {
     const { user, isLoading, error } = useAuth();
-    const navigate = useNavigate();
     const location = useLocation();
 
     // Debug logging
