@@ -76,9 +76,13 @@ import { useAuth } from '@/hooks/useAuth';
 export default function DashboardLayout() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
     const navigate = useNavigate();
-    const { user, isAnonymous, error: authError, isLoading: isAuthLoading } = useAuth(); // Capture auth state
-    const { data: teamData, isLoading: isTeamLoading } = useTeam(teamSlug || '');
-    const { data: myTeams } = useMyTeams(!isAuthLoading && !!user); // Only fetch teams when auth is settled
+    const { user, isAnonymous, error: authError, isLoading: isAuthLoading } = useAuth();
+
+    // 重要：確保在驗證完成 (!isAuthLoading) 且有使用者 (!!user) 的情況下才發起資料連線
+    const isReady = !isAuthLoading && !!user;
+    const { data: teamData, isLoading: isTeamLoading } = useTeam((isReady && teamSlug) ? teamSlug : '');
+    const { data: myTeams } = useMyTeams(isReady);
+
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -97,9 +101,8 @@ export default function DashboardLayout() {
         localStorage.clear();
         window.location.href = '/login';
     };
-
-    // 1. 先處理 Auth Loading (極短時間)
-    if (isAuthLoading && !user) {
+    // 1. 處理 Auth Loading (極短時間)
+    if (isAuthLoading) {
         return (
             <div className="flex h-screen items-center justify-center bg-slate-50">
                 <div className="flex flex-col items-center gap-4">
@@ -108,6 +111,12 @@ export default function DashboardLayout() {
                 </div>
             </div>
         );
+    }
+
+    // 2. 登入保護：若已完成載入但沒有 user，直接導回首頁或登入頁
+    if (!user) {
+        window.location.href = '/login';
+        return null;
     }
 
     // 2. 處理 Auth Error
