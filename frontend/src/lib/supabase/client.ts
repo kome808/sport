@@ -40,13 +40,22 @@ let supabaseInstance: SupabaseClient | null = null;
 export const getSupabaseClient = (): SupabaseClient => {
     if (!supabaseInstance) {
         const config = getSupabaseConfig();
+        // 動態決定 Storage Key，避免 3000 與 3001 互相鎖死 (Lock Contention)
+        const isBrowser = typeof window !== 'undefined';
+        const port = isBrowser ? window.location.port : '';
+        const storageKey = port === '3001' ? 'sb-admin-auth-token' : 'sb-auth-token';
+
         supabaseInstance = createClient(config.url, config.key, {
             auth: {
+                storageKey: storageKey,
                 persistSession: true,
                 autoRefreshToken: true,
-                detectSessionInUrl: true,
+                detectSessionInUrl: false,
                 flowType: 'pkce',
-            },
+                // 使用 any 轉型以避開舊版本 SDK 的型別檢查
+                // 在 localhost 多 Port 環境下，禁用 navigatorLock 可以防止 Tab 之間的競爭鎖死
+                navigatorLock: false,
+            } as any,
             // 關閉 Realtime 以避免不必要的連線
             realtime: {
                 params: {

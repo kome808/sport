@@ -32,7 +32,13 @@ export default function AuthCallbackPage() {
                 }
 
                 if (isMounted) {
-                    navigate('/dashboard', { replace: true });
+                    const redirectTo = localStorage.getItem('login_redirect_to');
+                    if (redirectTo) {
+                        localStorage.removeItem('login_redirect_to');
+                        navigate(redirectTo, { replace: true });
+                    } else {
+                        navigate('/dashboard', { replace: true });
+                    }
                 }
             } catch (err) {
                 console.error('Auth callback redirect error:', err);

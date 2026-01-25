@@ -15,9 +15,10 @@ import {
     ChevronsUpDown,
     PlusCircle,
     BookOpen,
+    Loader2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -75,37 +76,63 @@ import { useAuth } from '@/hooks/useAuth';
 export default function DashboardLayout() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
     const navigate = useNavigate();
-    const { isAnonymous } = useAuth(); // 偵測匿名狀態
+    const { user, isAnonymous, error: authError, isLoading: isAuthLoading } = useAuth(); // Capture auth state
     const { data: teamData, isLoading: isTeamLoading } = useTeam(teamSlug || '');
-    const { data: myTeams } = useMyTeams();
+    const { data: myTeams } = useMyTeams(!isAuthLoading && !!user); // Only fetch teams when auth is settled
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [dialogMode, setDialogMode] = useState<ProfileDialogMode>('profile');
-    const [userName, setUserName] = useState<string>(''); // User name state
 
-    // 獲取使用者資料
-    const fetchUserProfile = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.is_anonymous) {
-            setUserName('演示訪客');
-            return;
-        }
-        if (user?.user_metadata?.full_name) {
-            setUserName(user.user_metadata.full_name);
-        }
-    };
-
-    // 初始載入
-    useEffect(() => {
-        fetchUserProfile();
-    }, []);
+    // 使用 useAuth 提供的 user 資料，不再需要手動 fetch
+    const userName = isAnonymous ? '演示訪客' : (user?.user_metadata?.full_name || user?.email?.split('@')[0] || '教練');
 
     // 登出處理
     const handleLogout = async () => {
         await supabase.auth.signOut();
         window.location.href = '/login'; // 重導至登入頁
     };
+
+    const handleFixSession = async () => {
+        localStorage.clear();
+        window.location.href = '/login';
+    };
+
+    // 1. 先處理 Auth Loading (極短時間)
+    if (isAuthLoading && !user) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-slate-50">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    <p className="text-slate-500 font-bold animate-pulse">正在驗證身分...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // 2. 處理 Auth Error
+    if (authError) {
+        return (
+            <div className="flex flex-col h-screen items-center justify-center space-y-4 p-4 text-center bg-gray-50">
+                <div className="p-4 bg-red-100 rounded-full">
+                    <LogOut className="h-10 w-10 text-red-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">連線狀態異常</h2>
+                <p className="text-gray-600 max-w-md">
+                    系統檢測到您的登入狀態可能已過期或被鎖定 ({authError.name || 'AuthError'})。
+                    <br />這通常是為了保護您的帳號安全。
+                </p>
+                <div className="flex gap-4 mt-6">
+                    <Button onClick={() => window.location.reload()} variant="outline" className="px-6">
+                        重新整理
+                    </Button>
+                    <Button onClick={handleFixSession} variant="destructive" className="px-6">
+                        重新登入
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     const openProfileDialog = (mode: ProfileDialogMode) => {
         setDialogMode(mode);
@@ -329,7 +356,7 @@ export default function DashboardLayout() {
                                 open={isProfileOpen}
                                 onOpenChange={setIsProfileOpen}
                                 mode={dialogMode}
-                                onSuccess={fetchUserProfile}
+                                onSuccess={() => window.location.reload()}
                             />
                         </div>                    </header>
 

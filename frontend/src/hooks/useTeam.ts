@@ -28,6 +28,7 @@ export function useTeam(slug: string) {
     return useQuery({
         queryKey: teamKeys.bySlug(slug),
         queryFn: async () => {
+            console.log(`[useTeam] Fetching team for slug: ${slug}...`);
             const { data, error } = await supabase
                 .schema(SCHEMA_NAME)
                 .from('teams')
@@ -35,7 +36,11 @@ export function useTeam(slug: string) {
                 .eq('slug', slug)
                 .limit(1);
 
-            if (error) throw error;
+            if (error) {
+                console.error(`[useTeam] Error fetching team ${slug}:`, error);
+                throw error;
+            }
+            console.log(`[useTeam] Result for ${slug}:`, data?.[0]?.name);
             return (data?.[0] ?? null) as Team | null;
         },
         enabled: !!slug,
@@ -749,12 +754,16 @@ export function useValidateCoachInvitation() {
         },
     });
 }
-export function useMyTeams() {
+export function useMyTeams(enabled: boolean = true) {
     return useQuery({
         queryKey: ['myTeams'],
         queryFn: async () => {
+            console.log('[useMyTeams] Start fetching...');
             const { data, error } = await supabase.rpc('get_my_teams');
-            if (error) throw error;
+            if (error) {
+                console.warn('[useMyTeams] Fetch error:', error);
+                throw error;
+            }
             return (data || []) as {
                 team_id: string;
                 name: string;
@@ -763,5 +772,6 @@ export function useMyTeams() {
                 role: string;
             }[];
         },
+        enabled: enabled,
     });
 }

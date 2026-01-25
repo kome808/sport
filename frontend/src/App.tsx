@@ -28,6 +28,10 @@ import TutorialPage from './pages/team/TutorialPage';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
+import AdminLayout from './layouts/AdminLayout';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminTeamManagementPage from './pages/admin/AdminTeamManagementPage';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
 
 // 建立 React Query Client
 const queryClient = new QueryClient({
@@ -39,105 +43,148 @@ const queryClient = new QueryClient({
   },
 });
 
+// 判斷是否為 Admin 模式
+const isAdminMode = import.meta.env.VITE_APP_MODE === 'admin';
+
 // 路由設定
-const router = createBrowserRouter([
-  // 公開頁面
-  {
-    path: '/',
-    element: <LandingPage />,
-  },
-  {
-    path: '/login',
-    element: <LoginPage />,
-  },
-  {
-    path: '/register',
-    element: <RegisterPage />,
-  },
-  {
-    path: '/forgot-password',
-    element: <ForgotPasswordPage />,
-  },
-  {
-    path: '/reset-password',
-    element: <ResetPasswordPage />,
-  },
-  {
-    path: '/auth/callback',
-    element: <AuthCallbackPage />,
-  },
-  {
-    path: '/team/setup',
-    element: <TeamSetupPage />,
-  },
-  {
-    path: '/invite/coach/:teamSlug',
-    element: <CoachInvitationPage />,
-  },
-  {
-    path: '/invite/:teamSlug',
-    element: <InvitationPage />,
-  },
-  {
-    path: '/:teamSlug/login',
-    element: <TeamLoginPage />,
-  },
+const router = createBrowserRouter(
+  isAdminMode
+    ? [
+      // Admin 模式路由 (Port 3001)
+      {
+        path: '/login',
+        element: <AdminLoginPage />,
+      },
+      {
+        path: '/auth/callback',
+        element: <AuthCallbackPage />,
+      },
+      {
+        path: '/',
+        element: <AdminLayout />,
+        children: [
+          {
+            index: true,
+            element: <DashboardRedirectAdmin />, // Redirect to dashboard
+          },
+          {
+            path: 'dashboard',
+            element: <AdminDashboardPage />,
+          },
+          {
+            path: 'teams',
+            element: <AdminTeamManagementPage />,
+          },
+        ],
+      },
+      // 捕捉所有未定義路由導回首頁
+      {
+        path: '*',
+        element: <DashboardRedirectAdmin />,
+      }
+    ]
+    : [
+      // User 模式路由 (Port 3000)
+      // 公開頁面
+      {
+        path: '/',
+        element: <LandingPage />,
+      },
+      {
+        path: '/login',
+        element: <LoginPage />,
+      },
+      {
+        path: '/register',
+        element: <RegisterPage />,
+      },
+      {
+        path: '/forgot-password',
+        element: <ForgotPasswordPage />,
+      },
+      {
+        path: '/reset-password',
+        element: <ResetPasswordPage />,
+      },
+      {
+        path: '/auth/callback',
+        element: <AuthCallbackPage />,
+      },
+      {
+        path: '/team/setup',
+        element: <TeamSetupPage />,
+      },
+      {
+        path: '/invite/coach/:teamSlug',
+        element: <CoachInvitationPage />,
+      },
+      {
+        path: '/invite/:teamSlug',
+        element: <InvitationPage />,
+      },
+      {
+        path: '/:teamSlug/login',
+        element: <TeamLoginPage />,
+      },
 
-  {
-    path: '/dashboard',
-    element: <DashboardRedirect />,
-  },
+      {
+        path: '/dashboard',
+        element: <DashboardRedirect />,
+      },
 
-  // 教練端 - 儀表板
-  {
-    path: '/:teamSlug',
-    element: <DashboardLayout />,
-    children: [
-      {
-        index: true,
-        element: <DashboardPage />,
-      },
-      {
-        path: 'players',
-        element: <PlayersPage />,
-      },
-      {
-        path: 'players/add',
-        element: <BatchAddPlayersPage />,
-      },
-      {
-        path: 'player/:playerId/:activeTab?',
-        element: <PlayerRecordPage mode="coach" />,
-      },
-      {
-        path: 'notifications',
-        element: <NotificationsPage />,
-      },
-      {
-        path: 'settings',
-        element: <TeamSettingsPage />,
-      },
-      {
-        path: 'tutorial',
-        element: <TutorialPage />,
-      },
-    ],
-  },
+      // 注意：Admin 路由在此模式下已被移除
 
-  // 球員端
-  {
-    path: '/:teamSlug/p/:playerId/login',
-    element: <PlayerLoginPage />,
-  },
-  {
-    path: '/:teamSlug/p/:playerId/report',
-    element: <PlayerReportPage />,
-  },
-  {
-    path: '/:teamSlug/p/:playerId/:activeTab?',
-    element: <PlayerRecordPage mode="player" />,
-  },
-]);
+      // 教練端 - 儀表板
+      {
+        path: '/:teamSlug',
+        element: <DashboardLayout />,
+        children: [
+          {
+            index: true,
+            element: <DashboardPage />,
+          },
+          {
+            path: 'players',
+            element: <PlayersPage />,
+          },
+          {
+            path: 'players/add',
+            element: <BatchAddPlayersPage />,
+          },
+          {
+            path: 'player/:playerId/:activeTab?',
+            element: <PlayerRecordPage mode="coach" />,
+          },
+          {
+            path: 'notifications',
+            element: <NotificationsPage />,
+          },
+          {
+            path: 'settings',
+            element: <TeamSettingsPage />,
+          },
+          {
+            path: 'tutorial',
+            element: <TutorialPage />,
+          },
+        ],
+      },
+
+      // 球員端
+      {
+        path: '/:teamSlug/p/:playerId/login',
+        element: <PlayerLoginPage />,
+      },
+      {
+        path: '/:teamSlug/p/:playerId/report',
+        element: <PlayerReportPage />,
+      },
+      {
+        path: '/:teamSlug/p/:playerId/:activeTab?',
+        element: <PlayerRecordPage mode="player" />,
+      },
+    ]
+);
 
 /**
  * 自動導向組件
@@ -181,6 +228,14 @@ function DashboardRedirect() {
       <Loader2 className="h-12 w-12 animate-spin text-primary" />
     </div>
   );
+}
+
+function DashboardRedirectAdmin() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate('/dashboard', { replace: true });
+  }, [navigate]);
+  return null;
 }
 
 function App() {
