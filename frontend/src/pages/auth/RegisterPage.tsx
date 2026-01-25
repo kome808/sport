@@ -2,20 +2,27 @@
  * 教練註冊頁面
  */
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 
-
-
 export default function RegisterPage() {
-    const { signInWithGoogle } = useAuth();
+    const { user, isAnonymous, isLoading: authLoading, signInWithGoogle } = useAuth();
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    // 智能導覽：只有「正式使用者」才自動跳轉
+    useEffect(() => {
+        if (!authLoading && user && !isAnonymous) {
+            console.log('[RegisterPage] Formal user detected, redirecting to dashboard...');
+            navigate('/dashboard', { replace: true });
+        }
+    }, [user, isAnonymous, authLoading, navigate]);
 
     const handleGoogleRegister = async () => {
         setIsLoading(true);

@@ -2,7 +2,7 @@
  * 教練登入頁面
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';
 
@@ -12,10 +12,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
-    const { signInWithGoogle, signInAnonymously } = useAuth();
+    const { user, isAnonymous, isLoading: authLoading, signInWithGoogle, signInAnonymously } = useAuth();
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    // 智能導航：只有「正式使用者」才自動跳轉
+    useEffect(() => {
+        if (!authLoading && user && !isAnonymous) {
+            console.log('[LoginPage] Formal user detected, redirecting to dashboard...');
+            navigate('/dashboard', { replace: true });
+        }
+    }, [user, isAnonymous, authLoading, navigate]);
 
     const handleGoogleLogin = async () => {
         setIsLoading(true);
