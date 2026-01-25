@@ -8,6 +8,16 @@ import { supabase, SCHEMA_NAME } from '@/lib/supabase';
 import type { Team, Player, FatigueMetrics } from '@/types';
 
 // ================================================
+// 輔助函式：帶有超時保護的請求
+// ================================================
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 5000): Promise<T> {
+    const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    );
+    return Promise.race([promise, timeoutPromise]);
+}
+
+// ================================================
 // Query Keys
 // ================================================
 
@@ -29,21 +39,23 @@ export function useTeam(slug: string) {
         queryKey: teamKeys.bySlug(slug),
         queryFn: async () => {
             console.log(`[useTeam] Fetching team for slug: ${slug}...`);
-            const { data, error } = await supabase
+            const fetchPromise = supabase
                 .schema(SCHEMA_NAME)
                 .from('teams')
                 .select('*')
                 .eq('slug', slug)
                 .limit(1);
 
+            const { data, error } = await withTimeout(fetchPromise as any, 4000) as any;
+
             if (error) {
                 console.error(`[useTeam] Error fetching team ${slug}:`, error);
                 throw error;
             }
-            console.log(`[useTeam] Result for ${slug}:`, data?.[0]?.name);
             return (data?.[0] ?? null) as Team | null;
         },
         enabled: !!slug,
+        staleTime: 1000 * 60 * 5, // 5 分鐘快取
     });
 }
 

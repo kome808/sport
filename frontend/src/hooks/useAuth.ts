@@ -1,12 +1,14 @@
 /**
  * 認證相關 Hook
- * 處理教練登入、登出、註冊等功能
+ * 強化版本：包含超時保護與 LocalStorage 低延遲快取
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import type { User, AuthError } from '@supabase/supabase-js';
 import { supabase, SCHEMA_NAME } from '@/lib/supabase';
 import type { Coach } from '@/types';
+
+const PORT_STORAGE_KEY = window.location.port === '3001' ? 'sb-admin-auth-token' : 'sb-auth-token';
 
 interface AuthState {
     user: User | null;
@@ -16,11 +18,18 @@ interface AuthState {
 }
 
 export function useAuth() {
-    const [state, setState] = useState<AuthState>({
-        user: null,
-        coach: null,
-        isLoading: true,
-        error: null,
+    const [state, setState] = useState<AuthState>(() => {
+        // [進階] 初始化時預先偵測快取，實現「瞬開」
+        try {
+            const rawData = localStorage.getItem(PORT_STORAGE_KEY);
+            if (rawData) {
+                const parsed = JSON.parse(rawData);
+                if (parsed?.user) {
+                    return { user: parsed.user, coach: null, isLoading: true, error: null };
+                }
+            }
+        } catch (e) { }
+        return { user: null, coach: null, isLoading: true, error: null };
     });
 
     const fetchCoach = async (userId: string) => {
@@ -31,12 +40,7 @@ export function useAuth() {
                 .select('*')
                 .eq('id', userId)
                 .maybeSingle();
-
-            if (error) {
-                console.warn('[useAuth] Fetch coach error:', error);
-                return null;
-            }
-            return data;
+            return error ? null : data;
         } catch (e) {
             return null;
         }
@@ -45,49 +49,16 @@ export function useAuth() {
     useEffect(() => {
         let cancelled = false;
 
-        // 1. 極致保險：如果 getSession 真的掛了，手動從 LocalStorage 撈
-        // 這能解決 localhost 上極度頑固的 navigator.locks 問題
-        const tryManualSyncAuth = () => {
-            try {
-                const port = window.location.port;
-                const storageKey = port === '3001' ? 'sb-admin-auth-token' : 'sb-auth-token';
-                const rawData = localStorage.getItem(storageKey);
-
-                if (rawData) {
-                    const parsed = JSON.parse(rawData);
-                    if (parsed?.user) {
-                        console.log('[useAuth] Emergency manual auth detection success:', parsed.user.email);
-                        // 先設為 User，isLoading 設為 false，讓畫面先出來
-                        setState(prev => ({
-                            ...prev,
-                            user: parsed.user,
-                            isLoading: false
-                        }));
-                        return true;
-                    }
-                }
-            } catch (e) {
-                console.warn('[useAuth] Manual auth detection failed:', e);
-            }
-            return false;
-        };
-
-        // Safety Timeout: 
-        const safetyTimeout = setTimeout(() => {
-            if (!cancelled && state.isLoading) {
-                console.warn('[useAuth] Safety timeout triggered');
-                // 最後手段：嘗試手動偵測
-                const recovered = tryManualSyncAuth();
-                if (!recovered) {
-                    setState(prev => ({ ...prev, isLoading: false }));
-                }
-            }
-        }, 3000); // 縮短到 3 秒
-
         const init = async () => {
             try {
-                // 優先使用 getSession
-                const { data: { session } } = await supabase.auth.getSession();
+                // [方案 1] 使用 Promise.race 防止 getSession 卡死
+                const authPromise = supabase.auth.getSession();
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('AuthTimeout')), 2500)
+                );
+
+                const result = await Promise.race([authPromise, timeoutPromise]) as any;
+                const session = result?.data?.session;
 
                 if (cancelled) return;
 
@@ -101,48 +72,32 @@ export function useAuth() {
                         isLoading: false,
                         error: null,
                     });
-                    return;
-                }
-
-                // fallback to getUser with race
-                const timeoutPromise = new Promise<{ data: { user: null } }>((_, reject) =>
-                    setTimeout(() => reject(new Error('AuthTimeout')), 1500)
-                );
-
-                const { data: { user } } = await Promise.race([
-                    supabase.auth.getUser(),
-                    timeoutPromise
-                ]) as any;
-
-                if (user && !cancelled) {
-                    const coachData = await fetchCoach(user.id);
-                    setState({
-                        user: user,
-                        coach: coachData,
-                        isLoading: false,
-                        error: null,
-                    });
-                } else if (!cancelled) {
+                } else {
                     setState(prev => ({ ...prev, isLoading: false }));
                 }
-            } catch (e) {
+            } catch (e: any) {
+                console.warn('[useAuth] Auth check timed out or failed:', e.message);
                 if (!cancelled) {
-                    // 如果掛了，最後一搏：手動偵測
-                    if (!tryManualSyncAuth()) {
-                        setState(prev => ({ ...prev, isLoading: false }));
+                    // [方案 2] 超時或失敗，嘗試最後一次手動恢復，否則結束 Loading
+                    const rawData = localStorage.getItem(PORT_STORAGE_KEY);
+                    if (rawData) {
+                        try {
+                            const parsed = JSON.parse(rawData);
+                            if (parsed?.user) {
+                                console.log('[useAuth] Recovered from cache after timeout');
+                                setState(prev => ({ ...prev, user: parsed.user, isLoading: false }));
+                                return;
+                            }
+                        } catch (err) { }
                     }
+                    setState(prev => ({ ...prev, isLoading: false }));
                 }
             }
         };
 
-        // 先嘗試同步偵測，如果有的話，畫面會瞬間變更
-        tryManualSyncAuth();
-
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (cancelled) return;
-                console.log('[useAuth] State change:', event, session?.user?.email);
-
                 if (session?.user) {
                     const coachData = await fetchCoach(session.user.id);
                     if (cancelled) return;
@@ -162,7 +117,6 @@ export function useAuth() {
 
         return () => {
             cancelled = true;
-            clearTimeout(safetyTimeout);
             subscription.unsubscribe();
         };
     }, []);
@@ -170,10 +124,7 @@ export function useAuth() {
     // 登入
     const signIn = useCallback(async (email: string, password: string) => {
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) return { success: false, error };
             return { success: true, user: data.user };
         } catch (e: any) {
@@ -187,24 +138,16 @@ export function useAuth() {
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
-                options: {
-                    data: { name },
-                },
+                options: { data: { name } },
             });
-
             if (authError) return { success: false, error: authError };
-
             if (authData.user) {
-                await supabase
-                    .schema(SCHEMA_NAME)
-                    .from('coaches')
-                    .upsert({
-                        id: authData.user.id,
-                        email: authData.user.email,
-                        name
-                    }, { onConflict: 'id' });
+                await supabase.schema(SCHEMA_NAME).from('coaches').upsert({
+                    id: authData.user.id,
+                    email: authData.user.email,
+                    name
+                }, { onConflict: 'id' });
             }
-
             return { success: true, user: authData.user };
         } catch (e: any) {
             return { success: false, error: { message: e.message } as AuthError };
@@ -220,9 +163,7 @@ export function useAuth() {
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback`
-                }
+                options: { redirectTo: `${window.location.origin}/auth/callback` }
             });
             return { success: !error, error };
         } catch (e: any) {
@@ -230,7 +171,6 @@ export function useAuth() {
         }
     }, []);
 
-    // 匿名登入 (Demo 模式)
     const signInAnonymously = useCallback(async () => {
         try {
             const { data, error } = await supabase.auth.signInAnonymously();
