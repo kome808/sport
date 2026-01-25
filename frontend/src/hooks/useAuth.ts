@@ -8,8 +8,6 @@ import type { User, AuthError } from '@supabase/supabase-js';
 import { supabase, SCHEMA_NAME } from '@/lib/supabase';
 import type { Coach } from '@/types';
 
-const PORT_STORAGE_KEY = window.location.port === '3001' ? 'sb-admin-auth-token' : 'sb-auth-token';
-
 interface AuthState {
     user: User | null;
     coach: Coach | null;
