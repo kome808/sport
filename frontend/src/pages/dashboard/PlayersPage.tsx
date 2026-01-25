@@ -174,6 +174,7 @@ export default function PlayersPage() {
             birth_date: formData.get('birth_date') as string || undefined,
             height_cm: formData.get('height_cm') ? Number(formData.get('height_cm')) : undefined,
             weight_kg: formData.get('weight_kg') ? Number(formData.get('weight_kg')) : undefined,
+            status: formData.get('status') as 'active' | 'graduated',
         };
 
         try {
@@ -246,11 +247,14 @@ export default function PlayersPage() {
                         管理球隊成員 ({players?.length || 0} 人)
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col items-end gap-2">
                     <Button onClick={() => navigate(`/${teamSlug}/players/add`)} className="rounded-xl shadow-lg shadow-primary/25 h-12 px-6 font-black text-lg">
                         <Plus className="mr-2 h-5 w-5" />
                         新增選手
                     </Button>
+                    <p className="text-sm font-bold text-muted-foreground mr-1">
+                        選手預設登入密碼：<span className="font-black text-primary">1234</span>
+                    </p>
                 </div>
             </div>
 
@@ -531,6 +535,20 @@ export default function PlayersPage() {
                         <div className="space-y-2.5">
                             <label className="text-sm font-black text-black/40 uppercase tracking-widest pl-1">位置</label>
                             <Input name="position" defaultValue={editingPlayer?.position} className="border-2 border-gray-200 text-black font-black text-lg h-14 rounded-2xl focus:border-primary focus:ring-primary/10 bg-gray-50/30 transition-all" placeholder="例如：投手、游擊手" />
+                        </div>
+                        <div className="space-y-2.5">
+                            <label className="text-sm font-black text-black/40 uppercase tracking-widest pl-1">狀態</label>
+                            <div className="relative">
+                                <select
+                                    name="status"
+                                    defaultValue={editingPlayer?.status || 'active'}
+                                    className="w-full appearance-none border-2 border-gray-200 text-black font-black text-lg h-14 rounded-2xl focus:border-primary focus:ring-primary/10 bg-gray-50/30 transition-all px-4 outline-none"
+                                >
+                                    <option value="active">在隊中 (Active)</option>
+                                    <option value="graduated">已畢業 (Graduated)</option>
+                                </select>
+                                <ArrowDown className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                            </div>
                         </div>
                         <DialogFooter className="pt-6 gap-4">
                             <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="rounded-2xl flex-1 h-14 font-black border-2 border-gray-300 text-black hover:bg-gray-100 text-lg transition-all">

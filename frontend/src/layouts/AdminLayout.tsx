@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, LayoutDashboard, Users, LogOut, ShieldAlert } from 'lucide-react';
@@ -11,16 +10,7 @@ export default function AdminLayout() {
     const { user, isLoading, error } = useAuth();
     const location = useLocation();
 
-    // Debug logging
-    useEffect(() => {
-        if (!isLoading) {
-            console.log('[AdminLayout] Auth settled:', {
-                email: user?.email,
-                hasError: !!error,
-                errorName: error?.name
-            });
-        }
-    }, [user, isLoading, error]);
+
 
     const handleLogout = async () => {
         await supabase.auth.signOut();

@@ -50,19 +50,11 @@ export const getSupabaseClient = (): SupabaseClient => {
                 storageKey: storageKey,
                 persistSession: true,
                 autoRefreshToken: true,
-                detectSessionInUrl: false,
+                detectSessionInUrl: true,
                 flowType: 'pkce',
-                // 使用 any 轉型以避開舊版本 SDK 的型別檢查
-                // 在 localhost 多 Port 環境下，禁用 navigatorLock 可以防止 Tab 之間的競爭鎖死
+                // 重要：在 localhost 多 Port 環境下，禁用 navigatorLock 以防止重整時卡死
                 navigatorLock: false,
             } as any,
-            // 關閉 Realtime 以避免不必要的連線
-            realtime: {
-                params: {
-                    eventsPerSecond: 0,
-                },
-            },
-            // 使用原生 fetch
             global: {
                 fetch: (...args) => fetch(...args),
             },

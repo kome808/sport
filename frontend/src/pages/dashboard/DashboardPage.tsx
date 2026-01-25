@@ -47,41 +47,22 @@ BODY_PART_MAP['other'] = '其他部位';
 
 export default function DashboardPage() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
-    const { isLoading: isAuthLoading, user } = useAuth();
+    const { isLoading: isAuthLoading, isInitialized, user } = useAuth();
     const [selectedPeriod, setSelectedPeriod] = useState('7d');
     const [debugInfo, setDebugInfo] = useState<any>(null);
 
-    // 重要：確保身份驗證完成後才發起請求
-    const isReady = !isAuthLoading && !!user;
+    // 重要：確保身份驗證徹底完成 (!isAuthLoading && isInitialized) 後才發起請求
+    const isReady = !isAuthLoading && isInitialized && !!user;
 
     // 取得球隊資料
     const { data: team, isLoading: teamLoading, error: teamError } = useTeam((isReady && teamSlug) ? teamSlug : '');
 
-    // 診斷：記錄查詢過程
-    useEffect(() => {
-        if (isReady && teamSlug) {
-            const info = {
-                teamSlug,
-                userId: user?.id,
-                userEmail: user?.email,
-                isAuthLoading,
-                teamLoading,
-                teamError: teamError ? (teamError as any).message : null,
-                teamFound: !!team,
-                teamId: team?.id,
-                timestamp: new Date().toLocaleTimeString()
-            };
-            setDebugInfo(info);
-            console.log('[Dashboard Debug]', info);
-        }
-    }, [isReady, teamSlug, team, teamLoading, teamError, user, isAuthLoading]);
-
     const teamId = team?.id;
 
-    // 取得統計資料
+    // 取得統計資料 (快取 1 分鐘，避免頻繁請求)
     const { data: stats, isLoading: statsLoading } = useTeamStats(isReady ? teamId : undefined);
 
-    // 取得球員詳細資料 (為了排序用，含生日)
+    // 取得球員詳細資料
     const { data: players } = usePlayers(isReady ? teamId : undefined);
 
     // 取得全隊疲勞指標
@@ -176,9 +157,38 @@ export default function DashboardPage() {
     if (isAuthLoading || (isReady && teamLoading)) {
         return (
             <div className="flex h-screen items-center justify-center bg-slate-50">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                    <p className="text-slate-500 font-bold animate-pulse">正在載入戰情室...</p>
+                <div className="flex flex-col items-center gap-6">
+                    <div className="relative">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="h-2 w-2 bg-primary rounded-full animate-ping" />
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 text-center">
+                        <p className="text-slate-600 font-black text-lg animate-pulse">正在載入戰情室...</p>
+                        <div className="flex gap-3 text-[10px] font-bold text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">
+                            <span className={cn(isAuthLoading ? "animate-pulse text-amber-500" : "text-emerald-500")}>
+                                {isAuthLoading ? "● 驗證身分中..." : "✓ 身分已確認"}
+                            </span>
+                            <span className="w-[1px] h-3 bg-slate-200" />
+                            <span className={cn((isReady && teamLoading) ? "animate-pulse text-amber-500" : (team ? "text-emerald-500" : "text-slate-300"))}>
+                                {(isReady && teamLoading) ? `● 獲取球隊 [${teamSlug}]...` : (team ? "✓ 球隊已連接" : "等待連線")}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* 強制重整按鈕：如果卡住超過 5 秒 */}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-4 text-xs text-slate-400 hover:text-slate-600"
+                        onClick={() => {
+                            localStorage.clear();
+                            window.location.reload();
+                        }}
+                    >
+                        卡住了？清除快取並重試
+                    </Button>
                 </div>
             </div>
         );
@@ -192,47 +202,13 @@ export default function DashboardPage() {
                     <AlertTriangle className="h-10 w-10 text-slate-400" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">找不到球隊資料</h2>
-                <p className="text-slate-500 max-w-md mb-4">
-                    網址路徑 <code className="bg-slate-100 px-1 py-0.5 rounded">/{teamSlug}</code> 無法對應到任何現有球隊。<br />
-                    請確認網址是否正確，或是您尚未建立球隊。
-                </p>
-
-                {/* 診斷資訊面版 */}
-                <details className="w-full max-w-md mb-8 bg-slate-100 p-4 rounded-xl text-left border border-slate-200">
-                    <summary className="cursor-pointer font-bold text-sm text-slate-700 select-none">🔍 系統診斷資訊 (回報問題用)</summary>
-                    <pre className="text-[10px] mt-3 overflow-auto text-slate-600 bg-white p-3 rounded-lg border border-slate-100 font-mono">
-                        {JSON.stringify(debugInfo, null, 2)}
-                    </pre>
-                    <div className="mt-4 flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-[10px] h-8"
-                            onClick={() => window.location.reload()}
-                        >
-                            重新嘗試連線
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-[10px] h-8 text-red-500"
-                            onClick={() => {
-                                localStorage.clear();
-                                window.location.href = '/login';
-                            }}
-                        >
-                            強制重登 (清除快取)
-                        </Button>
-                    </div>
-                </details>
-
+                <div className="text-slate-500 max-w-md mb-8 space-y-2">
+                    <p>網址路徑 <code className="bg-slate-100 px-1 py-0.5 rounded">/{teamSlug}</code> 無法對應到任何現有球隊。</p>
+                    {teamError && <p className="text-xs text-red-500 font-mono">錯誤代碼: {(teamError as any)?.message || '連線逾時'}</p>}
+                </div>
                 <div className="flex gap-4">
-                    <Button asChild variant="outline">
-                        <Link to="/">返回首頁</Link>
-                    </Button>
-                    <Button asChild>
-                        <Link to="/team/setup">建立球隊</Link>
-                    </Button>
+                    <Button onClick={() => window.location.reload()}>重新整理</Button>
+                    <Button variant="outline" onClick={() => window.location.href = '/'}>返回首頁</Button>
                 </div>
             </div>
         );

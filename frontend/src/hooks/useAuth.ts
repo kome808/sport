@@ -1,9 +1,9 @@
 /**
  * 認證相關 Hook
- * 穩定版本：平衡快取、超時與正確的初始化順序
+ * 極速版本：優先信任 LocalStorage 快取，背景驗證 Session
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { User, AuthError } from '@supabase/supabase-js';
 import { supabase, SCHEMA_NAME } from '@/lib/supabase';
 import type { Coach } from '@/types';
@@ -16,29 +16,34 @@ interface AuthState {
     coach: Coach | null;
     isLoading: boolean;
     error: AuthError | null;
-    isInitialized: boolean; // 新增：標記是否已經完成初始嘗試
+    isInitialized: boolean;
 }
 
 export function useAuth() {
+    // 1. 初始化狀態：同步讀取 LocalStorage，如果存在則視為已登入 (Optimistic UI)
     const [state, setState] = useState<AuthState>(() => {
-        // 同步嘗試讀取快取，減少重整時的閃爍與誤判
         let initialUser = null;
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (raw) {
                 const parsed = JSON.parse(raw);
-                if (parsed?.user) initialUser = parsed.user;
+                if (parsed?.user) {
+                    initialUser = parsed.user;
+                }
             }
         } catch (e) { }
 
+        // 如果有緩存使用者，立即設為 isLoading: false，讓 UI 先渲染
         return {
             user: initialUser,
             coach: null,
-            isLoading: true,
+            isLoading: !initialUser, // 如果有快取就不轉圈
             error: null,
-            isInitialized: false
+            isInitialized: !!initialUser
         };
     });
+
+    const mountedRef = useRef(true);
 
     const fetchCoach = async (userId: string) => {
         try {
@@ -54,78 +59,105 @@ export function useAuth() {
         }
     };
 
+    // 背景驗證與資料補全
     useEffect(() => {
-        let cancelled = false;
+        mountedRef.current = true;
+        let isValidationDone = false;
 
-        const init = async () => {
+        const validateSession = async () => {
             try {
-                // 給予 4 秒超時保險
+                // 即使 UI 已經渲染，仍需驗證 Session 有效性
+                // 加入 5 秒超時避免背景驗證卡住導致狀態不一致
                 const authPromise = supabase.auth.getSession();
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('AuthTimeout')), 4000)
+                    setTimeout(() => reject(new Error('AuthTimeout')), 5000)
                 );
 
                 const result = await Promise.race([authPromise, timeoutPromise]) as any;
                 const session = result?.data?.session;
 
-                if (cancelled) return;
+                if (!mountedRef.current) return;
 
                 if (session?.user) {
-                    const coachData = await fetchCoach(session.user.id);
-                    if (cancelled) return;
+                    // Session 有效
+                    // 如果原本沒 User 或 User 不同，更新狀態
+                    const shouldFetchCoach = !state.coach || state.user?.id !== session.user.id;
 
-                    setState({
-                        user: session.user,
-                        coach: coachData,
-                        isLoading: false,
-                        error: null,
-                        isInitialized: true
-                    });
+                    if (shouldFetchCoach) {
+                        const coachData = await fetchCoach(session.user.id);
+                        if (mountedRef.current) {
+                            setState({
+                                user: session.user,
+                                coach: coachData,
+                                isLoading: false,
+                                error: null,
+                                isInitialized: true
+                            });
+                        }
+                    } else if (state.isLoading) {
+                        // 如果只是單純 loading 狀態沒解掉
+                        setState(prev => ({ ...prev, isLoading: false, isInitialized: true }));
+                    }
                 } else {
-                    setState(prev => ({ ...prev, user: null, coach: null, isLoading: false, isInitialized: true }));
+                    // Session 無效 (Cookie 過期或被登出)
+                    // 如果原本以為有 User (Optimistic)，現在發現沒有 -> 需要踢出
+                    if (state.user) {
+                        console.warn('[useAuth] Cached session invalid, logging out...');
+                        setState({
+                            user: null,
+                            coach: null,
+                            isLoading: false,
+                            error: { message: 'Session expired' } as AuthError,
+                            isInitialized: true
+                        });
+                    } else {
+                        setState(prev => ({ ...prev, isLoading: false, isInitialized: true, user: null }));
+                    }
                 }
             } catch (e: any) {
-                console.warn('[useAuth] Init failed or timed out:', e.message);
-                if (!cancelled) {
-                    // 如果超時，我們依賴初始化的快取或是結束 loading
+                console.warn('[useAuth] Background validation warning:', e.message);
+                // 超時或錯誤：保持現狀。如果原本是 Optimistic User，就讓他繼續用（假設離線）
+                if (mountedRef.current) {
                     setState(prev => ({ ...prev, isLoading: false, isInitialized: true }));
                 }
+            } finally {
+                isValidationDone = true;
             }
         };
 
+        validateSession();
+
+        // 監聽 Auth 變化 (Sign Out, Token Refresh)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                if (cancelled) return;
-                console.log('[useAuth] Auth Event:', event);
+                if (!mountedRef.current) return;
+                console.log('[useAuth] Event:', event);
 
-                if (session?.user) {
-                    // 為了效能，如果 user id 沒變且已有 coach，就不重複 fetch
-                    if (state.user?.id === session.user.id && state.coach) {
-                        setState(prev => ({ ...prev, user: session.user, isLoading: false, isInitialized: true }));
-                        return;
-                    }
-                    const coachData = await fetchCoach(session.user.id);
-                    if (cancelled) return;
-                    setState({
-                        user: session.user,
-                        coach: coachData,
-                        isLoading: false,
-                        error: null,
-                        isInitialized: true
-                    });
-                } else if (event === 'SIGNED_OUT') {
+                if (event === 'SIGNED_OUT') {
                     setState({ user: null, coach: null, isLoading: false, error: null, isInitialized: true });
+                } else if (session?.user && isValidationDone) {
+                    // 只有在初始化驗證完成後，才處理更新，避免 Race Condition
+                    if (state.user?.id !== session.user.id) {
+                        const coachData = await fetchCoach(session.user.id);
+                        if (mountedRef.current) {
+                            setState({
+                                user: session.user,
+                                coach: coachData,
+                                isLoading: false,
+                                error: null,
+                                isInitialized: true
+                            });
+                        }
+                    }
                 }
             }
         );
 
-        init();
-
         return () => {
-            cancelled = true;
+            mountedRef.current = false;
             subscription.unsubscribe();
         };
-    }, []);
+    }, []); // 移除依賴，確保只執行一次
 
     const signIn = useCallback(async (email: string, password: string) => {
         try {
@@ -159,6 +191,11 @@ export function useAuth() {
     }, []);
 
     const signOut = useCallback(async () => {
+        // 先清空狀態讓 UI 反應
+        setState({ user: null, coach: null, isLoading: false, error: null, isInitialized: true });
+        // 清除 LocalStorage
+        localStorage.removeItem(STORAGE_KEY);
+        // 背景執行
         const { error } = await supabase.auth.signOut();
         return { success: !error, error };
     }, []);

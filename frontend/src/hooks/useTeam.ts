@@ -6,16 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, SCHEMA_NAME } from '@/lib/supabase';
 import type { Team, Player, FatigueMetrics } from '@/types';
-
-// ================================================
-// 輔助函式：帶有超時保護的請求
-// ================================================
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 5000): Promise<T> {
-    const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
-    );
-    return Promise.race([promise, timeoutPromise]);
-}
+import bcrypt from 'bcryptjs';
 
 // ================================================
 // Query Keys
@@ -38,23 +29,26 @@ export function useTeam(slug: string) {
     return useQuery({
         queryKey: teamKeys.bySlug(slug),
         queryFn: async () => {
-            console.log(`[useTeam] Fetching team for slug: ${slug}...`);
-            const fetchPromise = supabase
+            if (!slug) return null;
+            console.log(`[useTeam] 🚀 API Request Started: ${slug}`);
+
+            const { data, error } = await supabase
                 .schema(SCHEMA_NAME)
                 .from('teams')
                 .select('*')
                 .eq('slug', slug)
-                .limit(1);
-
-            const { data, error } = await withTimeout(fetchPromise as any, 4000) as any;
+                .single(); // 直接用 single() 效率更高
 
             if (error) {
-                console.error(`[useTeam] Error fetching team ${slug}:`, error);
+                console.error(`[useTeam] ❌ API Request Failed:`, error);
                 throw error;
             }
-            return (data?.[0] ?? null) as Team | null;
+
+            console.log(`[useTeam] ✅ API Request Success:`, data?.name);
+            return data as Team | null;
         },
         enabled: !!slug,
+        staleTime: 60000,
     });
 }
 
@@ -422,10 +416,13 @@ export function useBatchAddPlayers() {
 
     return useMutation({
         mutationFn: async ({ team_id, players }: { team_id: string; players: Partial<Player>[] }) => {
+            // Hash default password '1234'
+            const defaultHash = bcrypt.hashSync('1234', 10);
+
             const { data, error } = await supabase
                 .schema(SCHEMA_NAME)
                 .from('players')
-                .insert(players.map(p => ({ ...p, team_id, password_hash: '1234', is_claimed: false })))
+                .insert(players.map(p => ({ ...p, team_id, password_hash: defaultHash, is_claimed: false })))
                 .select();
 
             if (error) throw error;

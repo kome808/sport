@@ -76,10 +76,10 @@ import { useAuth } from '@/hooks/useAuth';
 export default function DashboardLayout() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
     const navigate = useNavigate();
-    const { user, isAnonymous, error: authError, isLoading: isAuthLoading } = useAuth();
+    const { user, isAnonymous, error: authError, isLoading: isAuthLoading, isInitialized } = useAuth();
 
     // 重要：確保在驗證完成 (!isAuthLoading) 且有使用者 (!!user) 的情況下才發起資料連線
-    const isReady = !isAuthLoading && !!user;
+    const isReady = !isAuthLoading && isInitialized && !!user;
     const { data: teamData, isLoading: isTeamLoading } = useTeam((isReady && teamSlug) ? teamSlug : '');
     const { data: myTeams } = useMyTeams(isReady);
 
