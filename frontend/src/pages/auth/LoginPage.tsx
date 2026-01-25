@@ -106,13 +106,9 @@ export default function LoginPage() {
                                                 }
                                             }}
                                             disabled={isLoading}
-                                            className="w-full h-14 rounded-2xl text-lg font-black bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                            className="w-full h-16 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xl shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]"
                                         >
-                                            {isLoading ? (
-                                                <Loader2 className="h-6 w-6 animate-spin" />
-                                            ) : (
-                                                '立即進入體驗 (Demo)'
-                                            )}
+                                            {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : '立即開始演示'}
                                         </Button>
                                     </div>
                                 </div>
@@ -150,6 +146,18 @@ export default function LoginPage() {
                                     <span className="text-slate-900 font-bold block sm:inline"> "繼續使用「plnsfktjktaxgrennwcy.supabase.co」" </span>
                                     為正常現象，請放心登入。
                                 </p>
+                            </div>
+
+                            <div className="flex justify-center">
+                                <button
+                                    onClick={() => {
+                                        localStorage.clear();
+                                        window.location.reload();
+                                    }}
+                                    className="text-[10px] text-slate-300 hover:text-slate-500 font-medium underline uppercase tracking-tighter"
+                                >
+                                    登入遇到問題？清除所有連線紀錄
+                                </button>
                             </div>
                         </div>
                     </CardContent>

@@ -206,17 +206,34 @@ function DashboardRedirect() {
     const performRedirect = async () => {
       setIsRedirecting(true);
       try {
+        // Safari 補強：有的時候 Token 掛載需要一點點時間
         const { data: teams, error } = await supabase.rpc('get_my_teams');
-        if (error) throw error;
+
+        if (error) {
+          console.error('[DashboardRedirect] RPC Error:', error);
+          // 如果是授權錯誤，先等一下再試一次 (Safari Race Condition Fix)
+          if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const retry = await supabase.rpc('get_my_teams');
+            if (!retry.error && retry.data && retry.data.length > 0) {
+              navigate(`/${retry.data[0].slug}`, { replace: true });
+              return;
+            }
+          }
+          throw error;
+        }
 
         if (teams && teams.length > 0) {
           navigate(`/${teams[0].slug}`, { replace: true });
         } else {
+          // 只有確定沒有球隊時才去 setup
+          console.log('[DashboardRedirect] No teams found, going to setup');
           navigate('/team/setup', { replace: true });
         }
       } catch (err) {
-        console.error('[DashboardRedirect] Redirect failed:', err);
-        navigate('/team/setup', { replace: true });
+        console.error('[DashboardRedirect] Final redirect failure:', err);
+        // 不再自動帶去填資料，而是回登入頁
+        navigate('/login', { replace: true });
       }
     };
 
