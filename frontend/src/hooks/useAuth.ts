@@ -167,11 +167,45 @@ export function useAuth() {
         };
     }, []);
 
-    // 登入功能保持不變
+    // 登入
     const signIn = useCallback(async (email: string, password: string) => {
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            return { success: !error, error, user: data.user };
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+            if (error) return { success: false, error };
+            return { success: true, user: data.user };
+        } catch (e: any) {
+            return { success: false, error: { message: e.message } as AuthError };
+        }
+    }, []);
+
+    // 註冊
+    const signUp = useCallback(async (email: string, password: string, name: string) => {
+        try {
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { name },
+                },
+            });
+
+            if (authError) return { success: false, error: authError };
+
+            if (authData.user) {
+                await supabase
+                    .schema(SCHEMA_NAME)
+                    .from('coaches')
+                    .upsert({
+                        id: authData.user.id,
+                        email: authData.user.email,
+                        name
+                    }, { onConflict: 'id' });
+            }
+
+            return { success: true, user: authData.user };
         } catch (e: any) {
             return { success: false, error: { message: e.message } as AuthError };
         }
@@ -186,9 +220,22 @@ export function useAuth() {
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
-                options: { redirectTo: `${window.location.origin}/auth/callback` }
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`
+                }
             });
             return { success: !error, error };
+        } catch (e: any) {
+            return { success: false, error: { message: e.message } as AuthError };
+        }
+    }, []);
+
+    // 匿名登入 (Demo 模式)
+    const signInAnonymously = useCallback(async () => {
+        try {
+            const { data, error } = await supabase.auth.signInAnonymously();
+            if (error) return { success: false, error };
+            return { success: true, user: data.user };
         } catch (e: any) {
             return { success: false, error: { message: e.message } as AuthError };
         }
@@ -199,7 +246,9 @@ export function useAuth() {
         isAuthenticated: !!state.user,
         isAnonymous: state.user?.is_anonymous ?? false,
         signIn,
+        signUp,
         signOut,
         signInWithGoogle,
+        signInAnonymously,
     };
 }
