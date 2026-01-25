@@ -1,6 +1,6 @@
 /**
  * 認證相關 Hook
- * 精簡平衡版：包含超時保護，移除過於激進的初始化快取
+ * 穩定版本：平衡快取、超時與正確的初始化順序
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -8,19 +8,36 @@ import type { User, AuthError } from '@supabase/supabase-js';
 import { supabase, SCHEMA_NAME } from '@/lib/supabase';
 import type { Coach } from '@/types';
 
+// 判斷當前環境的 Storage Key
+const STORAGE_KEY = window.location.port === '3001' ? 'sb-admin-auth-token' : 'sb-auth-token';
+
 interface AuthState {
     user: User | null;
     coach: Coach | null;
     isLoading: boolean;
     error: AuthError | null;
+    isInitialized: boolean; // 新增：標記是否已經完成初始嘗試
 }
 
 export function useAuth() {
-    const [state, setState] = useState<AuthState>({
-        user: null,
-        coach: null,
-        isLoading: true,
-        error: null,
+    const [state, setState] = useState<AuthState>(() => {
+        // 同步嘗試讀取快取，減少重整時的閃爍與誤判
+        let initialUser = null;
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed?.user) initialUser = parsed.user;
+            }
+        } catch (e) { }
+
+        return {
+            user: initialUser,
+            coach: null,
+            isLoading: true,
+            error: null,
+            isInitialized: false
+        };
     });
 
     const fetchCoach = async (userId: string) => {
@@ -42,10 +59,10 @@ export function useAuth() {
 
         const init = async () => {
             try {
-                // 使用 Promise.race 防止 getSession 卡死
+                // 給予 4 秒超時保險
                 const authPromise = supabase.auth.getSession();
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('AuthTimeout')), 3000)
+                    setTimeout(() => reject(new Error('AuthTimeout')), 4000)
                 );
 
                 const result = await Promise.race([authPromise, timeoutPromise]) as any;
@@ -62,14 +79,16 @@ export function useAuth() {
                         coach: coachData,
                         isLoading: false,
                         error: null,
+                        isInitialized: true
                     });
                 } else {
-                    setState(prev => ({ ...prev, isLoading: false }));
+                    setState(prev => ({ ...prev, user: null, coach: null, isLoading: false, isInitialized: true }));
                 }
             } catch (e: any) {
-                console.warn('[useAuth] Auth check failed:', e.message);
+                console.warn('[useAuth] Init failed or timed out:', e.message);
                 if (!cancelled) {
-                    setState(prev => ({ ...prev, isLoading: false }));
+                    // 如果超時，我們依賴初始化的快取或是結束 loading
+                    setState(prev => ({ ...prev, isLoading: false, isInitialized: true }));
                 }
             }
         };
@@ -77,9 +96,14 @@ export function useAuth() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (cancelled) return;
-                console.log('[useAuth] Event:', event);
+                console.log('[useAuth] Auth Event:', event);
 
                 if (session?.user) {
+                    // 為了效能，如果 user id 沒變且已有 coach，就不重複 fetch
+                    if (state.user?.id === session.user.id && state.coach) {
+                        setState(prev => ({ ...prev, user: session.user, isLoading: false, isInitialized: true }));
+                        return;
+                    }
                     const coachData = await fetchCoach(session.user.id);
                     if (cancelled) return;
                     setState({
@@ -87,9 +111,10 @@ export function useAuth() {
                         coach: coachData,
                         isLoading: false,
                         error: null,
+                        isInitialized: true
                     });
                 } else if (event === 'SIGNED_OUT') {
-                    setState({ user: null, coach: null, isLoading: false, error: null });
+                    setState({ user: null, coach: null, isLoading: false, error: null, isInitialized: true });
                 }
             }
         );
@@ -102,7 +127,6 @@ export function useAuth() {
         };
     }, []);
 
-    // 登入
     const signIn = useCallback(async (email: string, password: string) => {
         try {
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -113,7 +137,6 @@ export function useAuth() {
         }
     }, []);
 
-    // 註冊
     const signUp = useCallback(async (email: string, password: string, name: string) => {
         try {
             const { data: authData, error: authError } = await supabase.auth.signUp({

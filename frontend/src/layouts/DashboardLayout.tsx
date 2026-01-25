@@ -18,7 +18,7 @@ import {
     Loader2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -101,8 +101,19 @@ export default function DashboardLayout() {
         localStorage.clear();
         window.location.href = '/login';
     };
-    // 1. 處理 Auth Loading (極短時間)
-    if (isAuthLoading) {
+
+    // 2. 登入保護：改用 useEffect 處理，避免渲染期間發生跳轉導致路由混亂
+    useEffect(() => {
+        // 只有在加載完成、且確定沒有使用者時才執行跳轉
+        if (!isAuthLoading && !user) {
+            console.warn('[DashboardLayout] No session found, redirecting to login...');
+            window.location.href = '/login';
+        }
+    }, [user, isAuthLoading]);
+
+    // 1. 處理 Auth Loading (初始驗證或等待中)
+    // 如果還在加載中且沒有對應的使用者快取，則顯示驗證畫面
+    if (isAuthLoading && !user) {
         return (
             <div className="flex h-screen items-center justify-center bg-slate-50">
                 <div className="flex flex-col items-center gap-4">
@@ -113,13 +124,10 @@ export default function DashboardLayout() {
         );
     }
 
-    // 2. 登入保護：若已完成載入但沒有 user，直接導回首頁或登入頁
-    if (!user) {
-        window.location.href = '/login';
-        return null;
-    }
+    // 2. 退場機制：若沒有 user，則渲染空白等待 useEffect 的跳轉
+    if (!user) return null;
 
-    // 2. 處理 Auth Error
+    // 3. 處理 Auth Error (非同步錯誤)
     if (authError) {
         return (
             <div className="flex flex-col h-screen items-center justify-center space-y-4 p-4 text-center bg-gray-50">
