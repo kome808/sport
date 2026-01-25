@@ -151,17 +151,20 @@ export default function DashboardPage() {
         }
     };
 
-    // 載入中狀態
-    if (teamLoading) {
+    // 載入中狀態 (包含身份驗證與資料抓取)
+    if (isAuthLoading || (isReady && teamLoading)) {
         return (
-            <div className="flex h-[50vh] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex h-screen items-center justify-center bg-slate-50">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    <p className="text-slate-500 font-bold animate-pulse">正在載入戰情室...</p>
+                </div>
             </div>
         );
     }
 
-    // 如果找不到球隊且非載入中，顯示錯誤或引導
-    if (!team) {
+    // 如果找不到球隊 (只有在身份驗證完成且查詢也完成後才判斷)
+    if (isReady && !team) {
         return (
             <div className="flex flex-col h-[60vh] items-center justify-center text-center px-4">
                 <div className="h-20 w-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">

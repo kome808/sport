@@ -1,6 +1,6 @@
 /**
  * 認證相關 Hook
- * 強化版本：包含超時保護與 LocalStorage 低延遲快取
+ * 精簡平衡版：包含超時保護，移除過於激進的初始化快取
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -18,18 +18,11 @@ interface AuthState {
 }
 
 export function useAuth() {
-    const [state, setState] = useState<AuthState>(() => {
-        // [進階] 初始化時預先偵測快取，實現「瞬開」
-        try {
-            const rawData = localStorage.getItem(PORT_STORAGE_KEY);
-            if (rawData) {
-                const parsed = JSON.parse(rawData);
-                if (parsed?.user) {
-                    return { user: parsed.user, coach: null, isLoading: true, error: null };
-                }
-            }
-        } catch (e) { }
-        return { user: null, coach: null, isLoading: true, error: null };
+    const [state, setState] = useState<AuthState>({
+        user: null,
+        coach: null,
+        isLoading: true,
+        error: null,
     });
 
     const fetchCoach = async (userId: string) => {
@@ -51,10 +44,10 @@ export function useAuth() {
 
         const init = async () => {
             try {
-                // [方案 1] 使用 Promise.race 防止 getSession 卡死
+                // 使用 Promise.race 防止 getSession 卡死
                 const authPromise = supabase.auth.getSession();
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('AuthTimeout')), 2500)
+                    setTimeout(() => reject(new Error('AuthTimeout')), 3000)
                 );
 
                 const result = await Promise.race([authPromise, timeoutPromise]) as any;
@@ -76,20 +69,8 @@ export function useAuth() {
                     setState(prev => ({ ...prev, isLoading: false }));
                 }
             } catch (e: any) {
-                console.warn('[useAuth] Auth check timed out or failed:', e.message);
+                console.warn('[useAuth] Auth check failed:', e.message);
                 if (!cancelled) {
-                    // [方案 2] 超時或失敗，嘗試最後一次手動恢復，否則結束 Loading
-                    const rawData = localStorage.getItem(PORT_STORAGE_KEY);
-                    if (rawData) {
-                        try {
-                            const parsed = JSON.parse(rawData);
-                            if (parsed?.user) {
-                                console.log('[useAuth] Recovered from cache after timeout');
-                                setState(prev => ({ ...prev, user: parsed.user, isLoading: false }));
-                                return;
-                            }
-                        } catch (err) { }
-                    }
                     setState(prev => ({ ...prev, isLoading: false }));
                 }
             }
@@ -98,6 +79,8 @@ export function useAuth() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (cancelled) return;
+                console.log('[useAuth] Event:', event);
+
                 if (session?.user) {
                     const coachData = await fetchCoach(session.user.id);
                     if (cancelled) return;
