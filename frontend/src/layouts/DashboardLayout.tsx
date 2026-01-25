@@ -90,7 +90,7 @@ export default function DashboardLayout() {
     // 登出處理
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        window.location.href = '/login'; // 重導至登入頁
+        window.location.href = '/'; // 重導至首頁
     };
 
     const handleFixSession = async () => {

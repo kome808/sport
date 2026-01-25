@@ -25,7 +25,7 @@ export default function AdminLayout() {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        navigate('/login');
+        window.location.href = '/'; // 重導至首頁
     };
 
     const handleFixSession = async () => {
