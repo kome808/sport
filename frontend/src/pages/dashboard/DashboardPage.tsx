@@ -3,7 +3,7 @@
  * 顯示全隊訓練負荷概覽與高風險預警
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
@@ -49,12 +49,33 @@ export default function DashboardPage() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
     const { isLoading: isAuthLoading, user } = useAuth();
     const [selectedPeriod, setSelectedPeriod] = useState('7d');
+    const [debugInfo, setDebugInfo] = useState<any>(null);
 
     // 重要：確保身份驗證完成後才發起請求
     const isReady = !isAuthLoading && !!user;
 
     // 取得球隊資料
-    const { data: team, isLoading: teamLoading } = useTeam((isReady && teamSlug) ? teamSlug : '');
+    const { data: team, isLoading: teamLoading, error: teamError } = useTeam((isReady && teamSlug) ? teamSlug : '');
+
+    // 診斷：記錄查詢過程
+    useEffect(() => {
+        if (isReady && teamSlug) {
+            const info = {
+                teamSlug,
+                userId: user?.id,
+                userEmail: user?.email,
+                isAuthLoading,
+                teamLoading,
+                teamError: teamError ? (teamError as any).message : null,
+                teamFound: !!team,
+                teamId: team?.id,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            setDebugInfo(info);
+            console.log('[Dashboard Debug]', info);
+        }
+    }, [isReady, teamSlug, team, teamLoading, teamError, user, isAuthLoading]);
+
     const teamId = team?.id;
 
     // 取得統計資料
@@ -171,10 +192,40 @@ export default function DashboardPage() {
                     <AlertTriangle className="h-10 w-10 text-slate-400" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">找不到球隊資料</h2>
-                <p className="text-slate-500 max-w-md mb-8">
+                <p className="text-slate-500 max-w-md mb-4">
                     網址路徑 <code className="bg-slate-100 px-1 py-0.5 rounded">/{teamSlug}</code> 無法對應到任何現有球隊。<br />
                     請確認網址是否正確，或是您尚未建立球隊。
                 </p>
+
+                {/* 診斷資訊面版 */}
+                <details className="w-full max-w-md mb-8 bg-slate-100 p-4 rounded-xl text-left border border-slate-200">
+                    <summary className="cursor-pointer font-bold text-sm text-slate-700 select-none">🔍 系統診斷資訊 (回報問題用)</summary>
+                    <pre className="text-[10px] mt-3 overflow-auto text-slate-600 bg-white p-3 rounded-lg border border-slate-100 font-mono">
+                        {JSON.stringify(debugInfo, null, 2)}
+                    </pre>
+                    <div className="mt-4 flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[10px] h-8"
+                            onClick={() => window.location.reload()}
+                        >
+                            重新嘗試連線
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[10px] h-8 text-red-500"
+                            onClick={() => {
+                                localStorage.clear();
+                                window.location.href = '/login';
+                            }}
+                        >
+                            強制重登 (清除快取)
+                        </Button>
+                    </div>
+                </details>
+
                 <div className="flex gap-4">
                     <Button asChild variant="outline">
                         <Link to="/">返回首頁</Link>
