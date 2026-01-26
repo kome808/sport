@@ -3,7 +3,7 @@
  * 顯示全隊訓練負荷概覽與高風險預警
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
@@ -15,11 +15,19 @@ import {
     Database,
     Check,
     Trash2,
+    Info,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -30,7 +38,14 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useTeam, useTeamStats, useTeamFatigueOverview, usePlayers, useTeamActivePainReports } from '@/hooks/useTeam';
+import {
+    useTeam,
+    useTeamStats,
+    useTeamFatigueOverview,
+    usePlayers,
+    useTeamActivePainReports,
+    useTeamDailyRecords
+} from '@/hooks/useTeam';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
@@ -38,20 +53,37 @@ import { cn } from '@/lib/utils';
 // Body Part Map
 import { BODY_PATHS } from '@/components/player/BodyMapPaths';
 
-// Body Part Map
-const BODY_PART_MAP = BODY_PATHS.reduce((acc, part) => {
-    acc[part.id] = part.name;
-    return acc;
-}, {} as Record<string, string>);
+const BODY_PART_MAP: Record<string, string> = {
+    ...BODY_PATHS.reduce((acc, part) => {
+        acc[part.id] = part.name;
+        return acc;
+    }, {} as Record<string, string>),
+    // 增加手動映射以處理可能的英文資料
+    'Ankle (R)': '右腳踝',
+    'Ankle (L)': '左腳踝',
+    'Knee (R)': '右膝蓋',
+    'Knee (L)': '左膝蓋',
+    'Shoulder (R)': '右肩膀',
+    'Shoulder (L)': '左肩膀',
+    'Wrist (R)': '右手腕',
+    'Wrist (L)': '左手腕',
+    'Elbow (R)': '右肘',
+    'Elbow (L)': '左肘',
+    'Hip (R)': '右髖部',
+    'Hip (L)': '左髖部',
+    'Foot (R)': '右腳掌',
+    'Foot (L)': '左腳掌',
+    'Lower Back': '下背部',
+    'Upper Back': '上背部',
+    'Neck': '頸部',
+    'Head': '頭部',
+};
 BODY_PART_MAP['other'] = '其他部位';
 
 export default function DashboardPage() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
     const { isLoading: isAuthLoading, isInitialized, user } = useAuth();
-    const [selectedPeriod, setSelectedPeriod] = useState('7d');
-    const [debugInfo, setDebugInfo] = useState<any>(null);
 
-    // 重要：確保身份驗證徹底完成 (!isAuthLoading && isInitialized) 後才發起請求
     const isReady = !isAuthLoading && isInitialized && !!user;
 
     // 取得球隊資料
@@ -59,17 +91,26 @@ export default function DashboardPage() {
 
     const teamId = team?.id;
 
+    // 展示模式固定日期：2026-01-27
+    const FIXED_DEMO_DATE = '2026-01-27';
+    const isDemo = team?.is_demo || teamSlug === 'shohoku-basketball';
+    const todayStr = isDemo ? FIXED_DEMO_DATE : format(new Date(), 'yyyy-MM-dd');
+
     // 取得統計資料 (快取 1 分鐘，避免頻繁請求)
-    const { data: stats, isLoading: statsLoading } = useTeamStats(isReady ? teamId : undefined);
+    const { data: stats, isLoading: statsLoading } = useTeamStats(isReady ? teamId : undefined, todayStr);
 
     // 取得球員詳細資料
     const { data: players } = usePlayers(isReady ? teamId : undefined);
 
     // 取得全隊疲勞指標
-    const { data: fatigueData, isLoading: fatigueLoading } = useTeamFatigueOverview(isReady ? teamId : undefined);
+    const { data: fatigueData, isLoading: fatigueLoading } = useTeamFatigueOverview(isReady ? teamId : undefined, todayStr);
 
     // 取得現有傷病列表
     const { data: activePainReports } = useTeamActivePainReports(isReady ? teamId : undefined);
+
+    // 取得今日細節紀錄 (心得、各個指標)
+    const { data: todayRecords } = useTeamDailyRecords(isReady ? teamId : undefined, todayStr);
+
 
     // 狀態：測試數據生成與對話框
     const [isGenerating, setIsGenerating] = useState(false);
@@ -242,6 +283,18 @@ export default function DashboardPage() {
         return birthA - birthB;
     });
 
+    // 從疲勞快照中篩選出高風險名單 (比照儀表板頂部的統計邏輯)
+    const highRiskList = sortedFatigueData.filter(d =>
+        d.metrics.acwr.risk_level === 'red' ||
+        d.metrics.acwr.risk_level === 'black' ||
+        d.metrics.rhr.risk_level === 'red' ||
+        d.metrics.rhr.risk_level === 'black' ||
+        d.metrics.wellness?.risk_level === 'red' ||
+        d.metrics.wellness?.risk_level === 'black' ||
+        d.metrics.srpe?.risk_level === 'red' ||
+        d.metrics.srpe?.risk_level === 'black'
+    );
+
     return (
         <div className="space-y-8 pb-12">
 
@@ -329,7 +382,8 @@ export default function DashboardPage() {
                             d.metrics.rhr.risk_level === 'black' ||
                             d.metrics.wellness?.risk_level === 'red' ||
                             d.metrics.wellness?.risk_level === 'black' ||
-                            d.metrics.srpe?.risk_level === 'red'
+                            d.metrics.srpe?.risk_level === 'red' ||
+                            d.metrics.srpe?.risk_level === 'black'
                         ).length)}
                         <p className="text-xs font-medium text-slate-600 mt-1">需要關注</p>
                     </CardContent>
@@ -353,103 +407,142 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-8 lg:grid-cols-3">
-                {/* 高風險預警列表 - 改為橫向全寬顯示 */}
-                <Card className="col-span-full border-slate-200 shadow-sm bg-white rounded-3xl overflow-hidden">
-                    <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-4">
-                        <div className="flex items-center justify-between">
+                {/* 高風險預警列表 */}
+                {highRiskList && highRiskList.length > 0 && (
+                    <Card className="col-span-full border-red-200 shadow-md bg-white rounded-3xl overflow-hidden border-2 animate-in fade-in slide-in-from-top-4 duration-700">
+                        <CardHeader className="border-b border-red-100 bg-red-50/50 py-4">
                             <div className="flex items-center gap-3">
                                 <div className="h-8 w-8 bg-red-100 rounded-lg flex items-center justify-center">
                                     <AlertTriangle className="h-4 w-4 text-red-600" />
                                 </div>
                                 <div>
-                                    <h3 className="text-base font-bold text-slate-900">風險名單</h3>
+                                    <h3 className="text-base font-bold text-red-900 flex items-center gap-2">
+                                        高風險預警名單
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <button className="outline-none ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full">
+                                                    <Info className="h-4 w-4 text-red-400 cursor-pointer hover:text-red-600 transition-colors" />
+                                                </button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-8 bg-white/95 backdrop-blur-xl outline-none">
+                                                <DialogHeader>
+                                                    <DialogTitle className="text-2xl font-black text-black mb-2">預警名單計算說明</DialogTitle>
+                                                    <DialogDescription className="text-black font-bold leading-relaxed">
+                                                        系統自動偵測指出「晨間心跳 RHR」、「身心狀態 WELLNESS」、「今日訓練負荷 sRPE」或「急慢性負荷比 ACWR」中<span className="text-red-600 underline underline-offset-4">任一指標</span>異常的球員：
+                                                        <ul className="mt-4 space-y-4 list-none text-black">
+                                                            <li className="flex gap-2">
+                                                                <Badge className="bg-red-500 h-fit">ACWR</Badge>
+                                                                <div className="text-sm">
+                                                                    <span className="font-black">急慢性負荷比 ACWR &gt; 1.5</span>
+                                                                    <p className="font-medium text-slate-500">代表近期訓練強度激增，受傷風險顯著提高。</p>
+                                                                </div>
+                                                            </li>
+                                                            <li className="flex gap-2">
+                                                                <Badge className="bg-blue-500 h-fit">sRPE</Badge>
+                                                                <div className="text-sm">
+                                                                    <span className="font-black">今日訓練負荷 sRPE (AU) &gt; 600</span>
+                                                                    <p className="font-medium text-slate-500">單日訓練強度過高，建議追蹤隔日恢復狀態。</p>
+                                                                </div>
+                                                            </li>
+                                                            <li className="flex gap-2">
+                                                                <Badge className="bg-orange-500 h-fit">Wellness</Badge>
+                                                                <div className="text-sm">
+                                                                    <span className="font-black">身心狀態 WELLNESS &lt; 12</span>
+                                                                    <p className="font-medium text-slate-500">睡眠、疲勞、壓力等自覺指標過低，代表恢復不足。</p>
+                                                                </div>
+                                                            </li>
+                                                            <li className="flex gap-2">
+                                                                <Badge className="bg-amber-500 h-fit">RHR</Badge>
+                                                                <div className="text-sm">
+                                                                    <span className="font-black">晨間心跳 RHR (Δ &gt; 8)</span>
+                                                                    <p className="font-medium text-slate-500">基準值顯著升高，可能是過度訓練或生病前兆。</p>
+                                                                </div>
+                                                            </li>
+                                                        </ul>
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </h3>
+                                    <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-0.5">需要立即安排人員面談或調整訓練量</p>
                                 </div>
                             </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-8">
-                        <div className="flex flex-wrap gap-4">
-                            {sortedFatigueData.filter(d =>
-                                d.metrics.acwr.risk_level === 'red' ||
-                                d.metrics.acwr.risk_level === 'black' ||
-                                d.metrics.rhr.risk_level === 'red' ||
-                                d.metrics.rhr.risk_level === 'black' ||
-                                d.metrics.wellness?.risk_level === 'red' ||
-                                d.metrics.wellness?.risk_level === 'black' ||
-                                d.metrics.srpe?.risk_level === 'red'
-                            ).length > 0 ? (
-                                sortedFatigueData
-                                    .filter(d =>
-                                        d.metrics.acwr.risk_level === 'red' ||
-                                        d.metrics.acwr.risk_level === 'black' ||
-                                        d.metrics.rhr.risk_level === 'red' ||
-                                        d.metrics.rhr.risk_level === 'black' ||
-                                        d.metrics.wellness?.risk_level === 'red' ||
-                                        d.metrics.wellness?.risk_level === 'black' ||
-                                        d.metrics.srpe?.risk_level === 'red'
-                                    )
-                                    .map((data) => {
-                                        // 決定顯示哪個風險標籤
-                                        let riskLabel = '';
-                                        let riskValue = '';
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-red-50/30 text-red-700 font-bold border-b border-red-100">
+                                        <tr>
+                                            <th className="py-3 px-6">球員</th>
+                                            <th className="py-3 px-6">風險等級</th>
+                                            <th className="py-3 px-6">異常內容 (數值 / 指標)</th>
+                                            <th className="py-3 px-6">動作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-red-50">
+                                        {highRiskList.map((item) => {
+                                            // 找出導致進榜的指標與其數值
+                                            const details = [];
+                                            if (item.metrics.acwr.risk_level === 'red' || item.metrics.acwr.risk_level === 'black') {
+                                                details.push({ name: '急慢性負荷比 ACWR', val: item.metrics.acwr.acwr?.toFixed(2), level: item.metrics.acwr.risk_level });
+                                            }
+                                            if (item.metrics.wellness?.risk_level === 'red' || item.metrics.wellness?.risk_level === 'black') {
+                                                details.push({ name: '身心狀態 WELLNESS', val: `${item.metrics.wellness.total}/25`, level: item.metrics.wellness.risk_level });
+                                            }
+                                            if (item.metrics.rhr.risk_level === 'red' || item.metrics.rhr.risk_level === 'black') {
+                                                const diff = item.metrics.rhr.difference;
+                                                details.push({ name: '晨間心跳 RHR', val: diff && diff > 0 ? `+${diff}` : (diff || 0), level: item.metrics.rhr.risk_level });
+                                            }
+                                            if (item.metrics.srpe?.risk_level === 'red' || item.metrics.srpe?.risk_level === 'black') {
+                                                details.push({ name: '今日訓練負荷 sRPE', val: item.metrics.srpe.load_au || item.metrics.srpe.score, level: item.metrics.srpe.risk_level });
+                                            }
 
-                                        if (data.metrics.acwr.risk_level === 'red') {
-                                            riskLabel = '急慢性負荷比';
-                                            riskValue = `${data.metrics.acwr.acwr}`;
-                                        } else if (data.metrics.rhr.status === 'red') {
-                                            riskLabel = '晨間心跳';
-                                            riskValue = `${data.metrics.rhr.current_rhr} bpm`;
-                                        } else if (data.metrics.wellness?.status === 'red') {
-                                            riskLabel = '身心狀態';
-                                            riskValue = `${data.metrics.wellness.total} 分`;
-                                        } else if (data.metrics.srpe?.status === 'red') {
-                                            riskLabel = '訓練負荷';
-                                            riskValue = '過高';
-                                        }
+                                            // 風險等級以最嚴重者為準 (遵循現有邏輯，不額外創造等級)
+                                            const highestRisk = details.some(d => d.level === 'black') ? 'black' : 'red';
 
-                                        return (
-                                            <Link
-                                                key={data.player.id}
-                                                to={`/${teamSlug}/player/${data.player.short_code || data.player.id}`}
-                                                className="group block w-32 sm:w-36"
-                                            >
-                                                <div className={cn(
-                                                    "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all shadow-md border border-white/20 relative group-hover:scale-105 group-hover:shadow-lg z-10",
-                                                    data.metrics.acwr.risk_level === 'black' || data.metrics.rhr.risk_level === 'black' ? "bg-slate-900" : "bg-red-500"
-                                                )}
-                                                >
-                                                    <div className="text-3xl font-black opacity-10 absolute top-2 right-3 text-white">!</div>
-
-                                                    <span className={cn(
-                                                        "font-bold text-center px-1 break-words leading-tight mb-2 text-white",
-                                                        data.player.name.length > 3 ? "text-xs" : "text-sm"
-                                                    )}>
-                                                        {data.player.name}
-                                                    </span>
-
-                                                    <div className="flex flex-col items-center w-full px-1">
-                                                        <span className="text-xs font-bold uppercase mb-1 tracking-tight text-white/90 text-center leading-none">{riskLabel}</span>
-                                                        <span className={cn(
-                                                            "font-bold truncate w-full text-center bg-white/20 py-0.5 rounded-full px-1.5 text-white",
-                                                            data.player.name.length > 3 ? "text-xs" : "text-sm"
-                                                        )}>{riskValue}</span>
-                                                    </div>
-                                                </div>
-                                            </Link>
-                                        );
-                                    })
-                            ) : (
-                                <div className="w-full flex flex-col items-center justify-center py-8 text-center bg-white/50 rounded-2xl border border-dashed border-slate-200">
-                                    <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
-                                        <Check className="h-6 w-6 text-green-600" />
-                                    </div>
-                                    <p className="text-sm font-bold text-slate-700">全員狀態良好</p>
-                                    <p className="text-xs text-slate-500">目前沒有球員處於高風險區域</p>
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+                                            return (
+                                                <tr key={item.player.id} className="hover:bg-red-50/20 transition-colors">
+                                                    <td className="py-3 px-6 font-bold text-black border-l-4 border-red-500">
+                                                        <Link to={`/${teamSlug}/player/${item.player.short_code || item.player.id}`} className="hover:text-primary hover:underline">
+                                                            {item.player.name}
+                                                        </Link>
+                                                    </td>
+                                                    <td className="py-3 px-6">
+                                                        <Badge className={cn(
+                                                            "font-black uppercase tracking-tighter shadow-sm",
+                                                            highestRisk === 'black' ? "bg-slate-900 text-white" : "bg-red-500 text-white"
+                                                        )}>
+                                                            {highestRisk === 'black' ? '危險 CRITICAL' : '高風險 HIGH'}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="py-3 px-6">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {details.map((d, idx) => (
+                                                                <div key={idx} className="flex items-center gap-1.5 bg-white border border-red-100 rounded-lg px-2 py-1 shadow-sm">
+                                                                    <span className="text-xs font-black text-red-600">{d.name}</span>
+                                                                    <span className="w-[1px] h-3 bg-red-100" />
+                                                                    <span className="text-sm font-black text-black">{d.val}</span>
+                                                                    {d.level === 'black' && <Badge className="h-4 px-1 text-[8px] bg-slate-900 border-0">CRITICAL</Badge>}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-6">
+                                                        <Button variant="ghost" size="sm" asChild className="h-8 rounded-xl font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-3">
+                                                            <Link to={`/${teamSlug}/player/${item.player.short_code || item.player.id}`}>
+                                                                細節
+                                                            </Link>
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* 現有傷病名單 */}
                 <Card className="col-span-full border-slate-200 shadow-sm bg-white rounded-3xl overflow-hidden">
@@ -459,7 +552,29 @@ export default function DashboardPage() {
                                 <TrendingUp className="h-4 w-4 text-amber-600" />
                             </div>
                             <div>
-                                <h3 className="text-base font-bold text-slate-900">現有傷病名單</h3>
+                                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                                    現有傷病名單
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <button className="outline-none ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full">
+                                                <Info className="h-4 w-4 text-slate-400 cursor-pointer hover:text-primary transition-colors" />
+                                            </button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-sm rounded-[2rem] border-none shadow-2xl p-8 bg-white/95 backdrop-blur-xl outline-none">
+                                            <DialogHeader>
+                                                <DialogTitle className="text-2xl font-black text-black mb-2">傷病名單說明</DialogTitle>
+                                                <DialogDescription className="text-black font-bold leading-relaxed">
+                                                    詳細記錄選手的傷病與康復進度：
+                                                    <ul className="mt-4 space-y-2 list-disc list-inside text-sm text-black font-medium">
+                                                        <li>顯示所有未標記為「已恢復」的傷病回報</li>
+                                                        <li>標記恢復後，系統會自動在名單中保留 48 小時 (兩天)，以便教練觀察回場初期的反應</li>
+                                                        <li>整合每日回報中的生病或異常狀態</li>
+                                                    </ul>
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                        </DialogContent>
+                                    </Dialog>
+                                </h3>
                             </div>
                         </div>
                     </CardHeader>
@@ -608,120 +723,163 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                {/* 全隊訓練負荷熱力圖 */}
-                <Card className="col-span-full xl:col-span-4 overflow-hidden border-slate-200 shadow-sm bg-white">
+                <Card className="col-span-full border-slate-200 shadow-sm bg-white rounded-3xl overflow-hidden">
                     <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <h3 className="text-base font-bold text-slate-900">球員總覽</h3>
+                                <h3 className="text-base font-bold text-slate-900">今天球員回饋總覽</h3>
                             </div>
-                            <Tabs value={selectedPeriod} onValueChange={setSelectedPeriod} className="bg-white p-1 rounded-xl border border-slate-200/50 shadow-inner">
-                                <TabsList className="bg-transparent h-8 border-none gap-1">
-                                    <TabsTrigger value="7d" className="rounded-lg data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all text-xs font-bold text-slate-500">7 天</TabsTrigger>
-                                    <TabsTrigger value="14d" className="rounded-lg data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all text-xs font-bold text-slate-500">14 天</TabsTrigger>
-                                    <TabsTrigger value="28d" className="rounded-lg data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all text-xs font-bold text-slate-500">28 天</TabsTrigger>
-                                </TabsList>
-                            </Tabs>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-8">
-                        {/* 簡化版熱力圖 - 球員卡片網格 */}
-                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
-                            {sortedFatigueData.map((data) => {
-                                // 計算整體風險等級 (取最嚴重的)
-                                const getRiskPriority = (level: string | null | undefined) => {
-                                    const l = level?.toLowerCase();
-                                    if (!l || l === 'gray' || l === 'none') return 0;
-                                    if (l === 'red' || l === 'black') return 3;
-                                    if (l === 'yellow' || l === 'orange') return 2;
-                                    if (l === 'green') return 1;
-                                    return 0;
-                                };
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left text-black border-collapse">
+                                <thead className="bg-slate-100 text-black font-black border-b-2 border-slate-200">
+                                    <tr>
+                                        <th className="py-4 px-6 whitespace-nowrap min-w-[120px]">球員姓名</th>
+                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[60px]">狀態</th>
+                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[10%]">晨間心跳</th>
+                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[15%]">身心狀態</th>
+                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[10%]">訓練負荷</th>
+                                        <th className="py-4 px-6 whitespace-nowrap w-[25%]">心得回饋</th>
+                                        <th className="py-4 px-6 whitespace-nowrap w-[20%]">傷病/生病回報</th>
+                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[5%]">動作</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {sortedFatigueData.length > 0 ? (
+                                        sortedFatigueData.map((data) => {
+                                            const record = todayRecords?.find(r => r.player_id === data.player.id);
+                                            const activePain = activePainReports?.find(p => p.player.id === data.player.id && !p.is_resolved);
 
-                                // 同步使用 risk_level (這是 useTeamFatigueOverview 對齊後的欄位)
-                                const acwrRisk = getRiskPriority(data.metrics.acwr.risk_level);
-                                const rhrRisk = getRiskPriority(data.metrics.rhr.risk_level);
-                                const wellnessRisk = getRiskPriority(data.metrics.wellness?.risk_level);
-                                const srpeRisk = getRiskPriority(data.metrics.srpe?.risk_level);
+                                            // 顏色狀態
+                                            const getRiskBg = (level: string | undefined) => {
+                                                switch (level) {
+                                                    case 'black': return 'bg-slate-900';
+                                                    case 'red': return 'bg-red-500';
+                                                    case 'yellow': return 'bg-amber-400';
+                                                    case 'green': return 'bg-green-400';
+                                                    default: return 'bg-slate-200';
+                                                }
+                                            };
 
-                                // 重要判定：如果今天完全沒有回報紀錄，則應該優先視為「無數據」
-                                // 檢查指標是否真的有數據，而不只是空物件
-                                const hasTodayActivity = !!(
-                                    (data.metrics.wellness && data.metrics.wellness.total > 0) ||
-                                    (data.metrics.srpe && data.metrics.srpe.score > 0) ||
-                                    (data.metrics.rhr && data.metrics.rhr.current_rhr)
-                                );
-                                let maxRisk = Math.max(acwrRisk, rhrRisk, wellnessRisk, srpeRisk);
-
-                                // 若無今日數據且長期趨勢 (ACWR) 也是灰色，強制為 0 (灰色)
-                                if (!hasTodayActivity && data.metrics.acwr.risk_level === 'gray') {
-                                    maxRisk = 0;
-                                }
-
-                                // 額外判定是否要使用黑色背景 (黑代表極高)
-                                const isBlack = data.metrics.acwr.risk_level === 'black' || data.metrics.rhr.risk_level === 'black';
-
-                                return (
-                                    <Link
-                                        key={data.player.id}
-                                        to={`/${teamSlug}/player/${data.player.short_code || data.player.id}`}
-                                        className="group"
-                                    >
-                                        <div
-                                            className={cn(
-                                                "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all shadow-sm border relative group-hover:scale-105 group-hover:shadow-lg z-10",
-                                                maxRisk === 0 && "bg-slate-100 border-slate-200",
-                                                isBlack && "bg-slate-950 border-slate-800",
-                                                !isBlack && maxRisk === 3 && "bg-red-500 border-red-600",
-                                                !isBlack && maxRisk === 2 && "bg-amber-400 border-amber-500",
-                                                !isBlack && maxRisk === 1 && "bg-green-400 border-green-500"
-                                            )}
-                                        >
-                                            <span className={cn(
-                                                "font-black text-center w-full px-1 truncate leading-none",
-                                                data.player.name.length > 3 ? "text-[10px]" : "text-xs",
-                                                (maxRisk === 3 || isBlack) ? "text-white" : "text-slate-900"
-                                            )}>
-                                                {data.player.name}
-                                            </span>
-                                            {/* 數值已隱藏，僅透過顏色顯示狀態 */}
-
-                                            {/* 未回報標記: wellness 為 null 代表今日未回報 */}
-                                            {!data.metrics.wellness && (
-                                                <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-slate-400 border-2 border-white shadow-sm ring-2 ring-slate-100 ring-offset-0 animate-pulse" title="今日未回報" />
-                                            )}
-                                        </div>
-                                        {/* Name label removed as name is now inside the card */}
-                                    </Link>
-                                );
-                            })}
-                        </div>
-
-                        {/* 圖例 */}
-                        <div className="flex items-center justify-center gap-6 mt-12 py-6 bg-slate-50 rounded-2xl border border-slate-100 flex-wrap">
-                            <div className="flex items-center gap-2">
-                                <div className="h-4 w-4 rounded-lg shadow-sm border border-black/5" style={{ backgroundColor: '#53EF8B' }} />
-                                <span className="text-xs font-bold text-slate-800">正常</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="h-4 w-4 rounded-lg shadow-sm border border-black/5" style={{ backgroundColor: '#EFB954' }} />
-                                <span className="text-xs font-bold text-slate-800">注意</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="h-4 w-4 rounded-lg shadow-sm border border-black/5" style={{ backgroundColor: '#EF4F3B' }} />
-                                <span className="text-xs font-bold text-slate-800">高風險</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="h-4 w-4 rounded-lg bg-slate-100 border border-slate-200 shadow-sm" />
-                                <span className="text-xs font-bold text-slate-800">無資料</span>
-                            </div>
-                            <div className="flex items-center gap-2 ml-4">
-                                <div className="h-2.5 w-2.5 rounded-full bg-slate-400 border border-white ring-2 ring-slate-200" />
-                                <span className="text-xs font-bold text-slate-800">今日未回報</span>
-                            </div>
+                                            return (
+                                                <tr key={data.player.id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="py-4 px-6">
+                                                        <span className="font-bold text-black text-sm">{data.player.name}</span>
+                                                    </td>
+                                                    <td className="py-4 px-6 text-center">
+                                                        <div className="flex justify-center">
+                                                            <div className={cn(
+                                                                "h-3 w-3 rounded-full shadow-inner",
+                                                                getRiskBg(data.metrics.acwr.risk_level === 'black' || data.metrics.wellness?.risk_level === 'black' ? 'black' :
+                                                                    (data.metrics.acwr.risk_level === 'red' || data.metrics.wellness?.risk_level === 'red' ? 'red' :
+                                                                        (data.metrics.acwr.risk_level === 'yellow' || data.metrics.wellness?.risk_level === 'yellow' ? 'yellow' : 'green')))
+                                                            )} />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-6 text-center">
+                                                        {record?.rhr_bpm ? (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="font-black text-black">{record.rhr_bpm}</span>
+                                                                <span className="text-sm font-bold text-slate-500">BPM</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-4 px-6">
+                                                        {record?.wellness_total ? (
+                                                            <div className="flex flex-col items-center gap-1.5 min-w-[140px]">
+                                                                <div className="flex gap-1">
+                                                                    {[
+                                                                        { v: record.sleep_quality, label: '睡' },
+                                                                        { v: record.fatigue_level, label: '疲' },
+                                                                        { v: record.mood, label: '心' },
+                                                                        { v: record.stress_level, label: '壓' },
+                                                                        { v: record.muscle_soreness, label: '痠' }
+                                                                    ].map((item, i) => (
+                                                                        <div key={i} className="flex flex-col items-center gap-0.5">
+                                                                            <span className="text-[10px] font-bold text-slate-400">{item.label}</span>
+                                                                            <div className={cn(
+                                                                                "w-6 h-6 rounded-md flex items-center justify-center text-xs font-black border",
+                                                                                item.v! >= 4 ? "bg-green-100 text-green-800 border-green-200" : (item.v! >= 3 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-red-100 text-red-800 border-red-200")
+                                                                            )}>
+                                                                                {item.v}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-full">
+                                                                    總分: {record.wellness_total}/25
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-center text-slate-400 text-sm">未回報</div>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-4 px-6 text-center">
+                                                        {record?.training_load_au ? (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="font-black text-black">{record.training_load_au}</span>
+                                                                <span className="text-sm font-bold text-slate-500">AU</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-4 px-6">
+                                                        {record?.feedback ? (
+                                                            <p className="text-sm text-black font-bold leading-relaxed">
+                                                                「{record.feedback}」
+                                                            </p>
+                                                        ) : (
+                                                            <span className="text-slate-400 text-sm">尚無留言</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-4 px-6">
+                                                        {activePain ? (
+                                                            <div className="flex flex-col gap-1">
+                                                                <Badge variant="outline" className={cn(
+                                                                    "px-2 py-0.5 text-sm font-black w-fit border-2",
+                                                                    activePain.type === 'illness'
+                                                                        ? "bg-orange-50 text-orange-700 border-orange-200"
+                                                                        : "bg-red-50 text-red-700 border-red-200"
+                                                                )}>
+                                                                    {activePain.type === 'illness' ? '生病' : '傷痛'}：{BODY_PART_MAP[activePain.body_part] || activePain.body_part}
+                                                                </Badge>
+                                                                {activePain.description && (
+                                                                    <span className="text-sm text-black font-bold truncate max-w-[150px]">
+                                                                        {activePain.description}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300 text-sm">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-4 px-6 text-center">
+                                                        <Button variant="outline" size="sm" asChild className="rounded-xl font-bold h-8 text-sm hover:bg-slate-100 border-slate-200">
+                                                            <Link to={`/${teamSlug}/player/${data.player.short_code || data.player.id}`}>
+                                                                查看
+                                                            </Link>
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={8} className="py-12 text-center text-slate-400 font-medium">
+                                                尚未有球員資料
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </CardContent>
-                </Card >
+                </Card>
             </div >
             {/* 清除確認對話框 */}
             <AlertDialog open={isClearConfirmOpen} onOpenChange={setIsClearConfirmOpen}>

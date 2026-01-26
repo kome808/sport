@@ -89,28 +89,28 @@ export default function RecordTable({ records, compact = false }: RecordTablePro
     return (
         <>
             <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
-                <table className="w-full text-sm border-collapse">
+                <table className="w-full text-sm border-collapse text-black">
                     <thead>
                         {/* 第一層表頭：分組 */}
-                        <tr className="bg-slate-50/80 border-b border-slate-200">
-                            <th rowSpan={2} className="text-left py-3 px-4 font-black text-slate-900 border-r border-slate-200">日期</th>
-                            <th rowSpan={2} className="text-center py-3 px-2 font-black text-slate-900 border-r border-slate-200">RHR</th>
-                            <th colSpan={6} className="text-center py-2 px-2 font-black text-slate-900 border-r border-slate-200 bg-info/5">身心狀態 Wellness</th>
-                            <th colSpan={3} className="text-center py-2 px-2 font-black text-slate-900 border-r border-slate-200 bg-primary/5">訓練負荷 sRPE</th>
-                            <th rowSpan={2} className="text-center py-3 px-2 font-black text-slate-900 border-r border-slate-200">風險 Risk</th>
-                            <th rowSpan={2} className="text-center py-3 px-2 font-black text-slate-900">回饋</th>
+                        <tr className="bg-slate-100 border-b-2 border-slate-200 text-black">
+                            <th rowSpan={2} className="text-left py-3 px-4 font-black text-black border-r border-slate-200">日期</th>
+                            <th rowSpan={2} className="text-center py-3 px-2 font-black text-black border-r border-slate-200 whitespace-nowrap">晨間心跳 RHR</th>
+                            <th colSpan={6} className="text-center py-2 px-2 font-black text-black border-r border-slate-200 bg-info/5 whitespace-nowrap">身心狀態 Wellness</th>
+                            <th colSpan={3} className="text-center py-2 px-2 font-black text-black border-r border-slate-200 bg-primary/5 whitespace-nowrap">訓練負荷 sRPE</th>
+                            <th rowSpan={2} className="text-center py-3 px-2 font-black text-black border-r border-slate-200 whitespace-nowrap">風險 Risk</th>
+                            <th rowSpan={2} className="text-center py-3 px-2 font-black text-black">回饋</th>
                         </tr>
                         {/* 第二層表頭：具體指標 */}
-                        <tr className="bg-slate-50/50 border-b border-slate-200">
-                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">睡眠</th>
-                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">疲勞</th>
-                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">心情</th>
-                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">壓力</th>
-                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">痠痛</th>
-                            <th className="text-center py-2 px-2 font-black text-info border-r border-slate-200">總分</th>
-                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">強度</th>
-                            <th className="text-center py-2 px-2 font-bold text-slate-700 border-r border-slate-200">時間</th>
-                            <th className="text-center py-2 px-2 font-black text-primary border-r border-slate-200">負荷</th>
+                        <tr className="bg-slate-50/50 border-b border-slate-200 text-black">
+                            <th className="text-center py-2 px-2 font-black text-black border-r border-slate-200">睡眠</th>
+                            <th className="text-center py-2 px-2 font-black text-black border-r border-slate-200">疲勞</th>
+                            <th className="text-center py-2 px-2 font-black text-black border-r border-slate-200">心情</th>
+                            <th className="text-center py-2 px-2 font-black text-black border-r border-slate-200">壓力</th>
+                            <th className="text-center py-2 px-2 font-black text-black border-r border-slate-200">痠痛</th>
+                            <th className="text-center py-2 px-2 font-black text-black border-r border-slate-200">總分</th>
+                            <th className="text-center py-2 px-2 font-black text-black border-r border-slate-200">強度</th>
+                            <th className="text-center py-2 px-2 font-black text-black border-r border-slate-200">時間</th>
+                            <th className="text-center py-2 px-2 font-black text-black border-r border-slate-200">負荷</th>
                         </tr>
                     </thead>
                     <tbody>

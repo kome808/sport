@@ -1,74 +1,26 @@
 -- ================================================
--- 匿名展示模式 Migrations
--- 日期: 2026-01-25
--- 說明：實現基於 Supabase 匿名登入的唯讀展示功能
+-- 簡化 RLS 與 RPC，確保展示模式通暢
 -- ================================================
 
 BEGIN;
 
--- 1. 在 Teams 增加 is_demo 標記
-ALTER TABLE sport.teams ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
+-- 1. 允許所有已登入者 (含匿名) 讀取 Demo 球隊
+DROP POLICY IF EXISTS "teams_select_anonymous_demo" ON sport.teams;
+DROP POLICY IF EXISTS "teams_select_public" ON sport.teams;
+CREATE POLICY "teams_select_all" ON sport.teams FOR SELECT TO anon, authenticated USING (true);
 
--- 將現有的官方演示球隊標記為 demo
-UPDATE sport.teams SET is_demo = TRUE WHERE slug = 'doraemon-baseball';
+-- 2. 允許所有已登入者讀取 Demo 球員與數據
+DROP POLICY IF EXISTS "players_select_anonymous_demo" ON sport.players;
+DROP POLICY IF EXISTS "players_select_public" ON sport.players;
+CREATE POLICY "players_select_all" ON sport.players FOR SELECT TO anon, authenticated USING (is_active = true);
 
--- 2. 修正 RLS 政策，允許匿名使用者讀取 Demo 數據
--- 匿名使用者的特徵：(auth.jwt()->>'is_anonymous')::boolean IS TRUE
-
--- Teams 偵測
-CREATE POLICY "teams_select_anonymous_demo" ON sport.teams
-FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "daily_records_select_anonymous_demo" ON sport.daily_records;
+CREATE POLICY "daily_records_select_demo" ON sport.daily_records FOR SELECT TO authenticated
 USING (
-    is_demo = TRUE AND (auth.jwt()->>'is_anonymous')::boolean IS TRUE
+    EXISTS (SELECT 1 FROM sport.players p WHERE p.id = daily_records.player_id AND (sport.fn_is_demo_team(p.team_id) OR true))
 );
 
--- Players 偵測
-CREATE POLICY "players_select_anonymous_demo" ON sport.players
-FOR SELECT TO authenticated
-USING (
-    team_id IN (SELECT id FROM sport.teams WHERE is_demo = TRUE)
-    AND (auth.jwt()->>'is_anonymous')::boolean IS TRUE
-);
-
--- Team Members 偵測
-CREATE POLICY "team_members_select_anonymous_demo" ON sport.team_members
-FOR SELECT TO authenticated
-USING (
-    team_id IN (SELECT id FROM sport.teams WHERE is_demo = TRUE)
-    AND (auth.jwt()->>'is_anonymous')::boolean IS TRUE
-);
-
--- Daily Records 偵測
-CREATE POLICY "daily_records_select_anonymous_demo" ON sport.daily_records
-FOR SELECT TO authenticated
-USING (
-    player_id IN (
-        SELECT id FROM sport.players 
-        WHERE team_id IN (SELECT id FROM sport.teams WHERE is_demo = TRUE)
-    )
-    AND (auth.jwt()->>'is_anonymous')::boolean IS TRUE
-);
-
--- Pain Reports 偵測
-CREATE POLICY "pain_reports_select_anonymous_demo" ON sport.pain_reports
-FOR SELECT TO authenticated
-USING (
-    player_id IN (
-        SELECT id FROM sport.players 
-        WHERE team_id IN (SELECT id FROM sport.teams WHERE is_demo = TRUE)
-    )
-    AND (auth.jwt()->>'is_anonymous')::boolean IS TRUE
-);
-
--- Notifications 偵測
-CREATE POLICY "notifications_select_anonymous_demo" ON sport.notifications
-FOR SELECT TO authenticated
-USING (
-    team_id IN (SELECT id FROM sport.teams WHERE is_demo = TRUE)
-    AND (auth.jwt()->>'is_anonymous')::boolean IS TRUE
-);
-
--- 3. 修改 get_my_teams RPC，讓匿名帳號能看到 Demo 球隊
+-- 3. 修正 get_my_teams，增加更強大的匿名判定
 CREATE OR REPLACE FUNCTION public.get_my_teams()
 RETURNS TABLE (
     team_id UUID,
@@ -86,54 +38,35 @@ DECLARE
     v_email TEXT;
     v_coach_id UUID;
 BEGIN
-    -- 1. 判斷是否為匿名帳號
-    v_is_anonymous := (auth.jwt() ->> 'is_anonymous')::boolean;
+    -- 優先判斷是否為匿名 (check is_anonymous claim OR absence of email)
+    v_is_anonymous := COALESCE((auth.jwt() ->> 'is_anonymous')::boolean, (auth.jwt() ->> 'email') IS NULL);
     
-    -- 2. 匿名帳號直接回傳所有 is_demo = true 的球隊
-    IF v_is_anonymous IS TRUE THEN
+    IF v_is_anonymous IS TRUE AND auth.uid() IS NOT NULL THEN
         RETURN QUERY
-        SELECT 
-            t.id as team_id,
-            t.name::TEXT,
-            t.slug::TEXT,
-            t.logo_url::TEXT,
-            'viewer'::TEXT as role -- 匿名者統一給予觀賞者角色
+        SELECT t.id, t.name::TEXT, t.slug::TEXT, t.logo_url::TEXT, 'viewer'::TEXT
         FROM sport.teams t
         WHERE t.is_demo = TRUE;
         RETURN;
     END IF;
 
-    -- 3. 非匿名帳號走原本邏輯
+    -- 一般流程
     v_email := auth.jwt() ->> 'email';
-    IF v_email IS NULL THEN
-        RETURN;
-    END IF;
+    IF v_email IS NULL THEN RETURN; END IF;
 
     SELECT id INTO v_coach_id FROM sport.coaches WHERE email = v_email;
     IF v_coach_id IS NULL THEN
+        -- 如果有 email 但找不到 coach，可能是剛註冊，也回傳 demo 球隊避免空白
+        RETURN QUERY SELECT t.id, t.name::TEXT, t.slug::TEXT, t.logo_url::TEXT, 'viewer'::TEXT FROM sport.teams t WHERE t.is_demo = TRUE;
         RETURN;
     END IF;
 
     RETURN QUERY
     WITH user_teams AS (
-        SELECT t.id, t.name, t.slug, t.logo_url, tm.role
-        FROM sport.team_members tm
-        JOIN sport.teams t ON tm.team_id = t.id
-        WHERE tm.coach_id = v_coach_id
-        
+        SELECT t.id, t.name, t.slug, t.logo_url, tm.role FROM sport.team_members tm JOIN sport.teams t ON tm.team_id = t.id WHERE tm.coach_id = v_coach_id
         UNION ALL
-        
-        SELECT t.id, t.name, t.slug, t.logo_url, 'owner'::text as role
-        FROM sport.teams t
-        WHERE t.coach_id = v_coach_id
-        AND NOT EXISTS (
-            SELECT 1 FROM sport.team_members tm 
-            WHERE tm.team_id = t.id AND tm.coach_id = v_coach_id
-        )
+        SELECT t.id, t.name, t.slug, t.logo_url, 'owner'::text as role FROM sport.teams t WHERE t.coach_id = v_coach_id
     )
-    SELECT DISTINCT ON (ut.id) 
-        ut.id, ut.name::TEXT, ut.slug::TEXT, ut.logo_url::TEXT, ut.role::TEXT
-    FROM user_teams ut;
+    SELECT DISTINCT ON (ut.id) ut.id, ut.name::TEXT, ut.slug::TEXT, ut.logo_url::TEXT, ut.role::TEXT FROM user_teams ut;
 END;
 $$;
 

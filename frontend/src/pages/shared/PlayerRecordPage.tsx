@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Loader2, Settings, LogOut, ChevronLeft, ChevronRight, Activity, History, Stethoscope, TrendingUp, PenSquare, User } from 'lucide-react';
+import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import DailyRecordHistory from '@/components/records/DailyRecordHistory';
 import { usePlayer, usePlayerSession } from '@/hooks/usePlayer';
+import { supabase } from '@/lib/supabase';
 import { useTeam } from '@/hooks/useTeam';
 import { ProfileEditDialog } from '@/components/player/ProfileEditDialog';
 
@@ -30,10 +32,20 @@ export default function PlayerRecordPage({ mode }: PlayerRecordPageProps) {
     const navigate = useNavigate();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
+    // 取得球隊資料
+    const { data: team } = useTeam(teamSlug || '');
+
+    // 取得球員資料
+    const { data: player, isLoading: playerLoading, error: playerError } = usePlayer(playerId);
+
+    const FIXED_DEMO_DATE = '2026-01-27';
+    const isDemo = team?.is_demo || teamSlug === 'shohoku-basketball';
+    const todayStr = isDemo ? FIXED_DEMO_DATE : format(new Date(), 'yyyy-MM-dd');
+
     // 計算年齡
     const calculateAge = (birthDate?: string) => {
         if (!birthDate) return '-';
-        const today = new Date();
+        const today = isDemo ? new Date(FIXED_DEMO_DATE) : new Date();
         const birth = new Date(birthDate);
         let age = today.getFullYear() - birth.getFullYear();
         const m = today.getMonth() - birth.getMonth();
@@ -55,17 +67,16 @@ export default function PlayerRecordPage({ mode }: PlayerRecordPageProps) {
         }
     };
 
-    // 取得球隊資料
-    const { data: team } = useTeam(teamSlug || '');
-
-    // 取得球員資料
-    const { data: player, isLoading: playerLoading, error: playerError } = usePlayer(playerId);
-
     // 球員端 Session 檢查
-    const { session, isLoading: sessionLoading, logout } = usePlayerSession();
+    const { session, isLoading: sessionLoading } = usePlayerSession();
+    // 使用 useRef 來避免閉包或非同步 State 更新導致的 Race Condition
+    const isLoggingOut = useRef(false);
 
     // 球員端需要驗證登入狀態
     useEffect(() => {
+        // 如果正在登出中，完全忽略這裡的檢查，避免被踢回登入頁
+        if (isLoggingOut.current) return;
+
         if (mode === 'player' && !sessionLoading) {
             // 如果球員資料載入完成，但 Session 不存在或不匹配
             if (player && (!session || session.playerId !== player.id)) {
@@ -79,9 +90,24 @@ export default function PlayerRecordPage({ mode }: PlayerRecordPageProps) {
         }
     }, [mode, session, sessionLoading, player, playerLoading, teamSlug, navigate, playerId]);
 
-    const handleLogout = () => {
-        logout();
-        navigate(`/${teamSlug}/p/${playerId}/login`);
+    const handleLogout = async (e?: React.MouseEvent) => {
+        // 防止事件冒泡或預設行為
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        isLoggingOut.current = true;
+        console.log('[PlayerRecordPage] Force Logout & Redirect');
+
+        // 1. 清除 Supabase Auth (重要：如果是匿名登入，這會清除狀態)
+        await supabase.auth.signOut();
+
+        // 2. 清除 App Session
+        localStorage.removeItem('player_session');
+
+        // 3. 強制替換網址回首頁 (replace 避免上一頁回到這裡)
+        window.location.replace('/');
     };
 
     // 載入中
@@ -251,7 +277,7 @@ export default function PlayerRecordPage({ mode }: PlayerRecordPageProps) {
                         </TabsList>
 
                         <TabsContent value="dashboard" className="space-y-6">
-                            <FatigueDashboard playerId={player.id} variant="full" />
+                            <FatigueDashboard playerId={player.id} variant="full" todayDate={todayStr} hideFeedback={true} />
                         </TabsContent>
 
                         <TabsContent value="daily" className="space-y-6">
@@ -376,7 +402,7 @@ export default function PlayerRecordPage({ mode }: PlayerRecordPageProps) {
                 </div>
 
                 <TabsContent value="fatigue">
-                    <FatigueDashboard playerId={player.id} variant="full" />
+                    <FatigueDashboard playerId={player.id} variant="full" todayDate={todayStr} hideFeedback={true} />
                 </TabsContent>
 
                 <TabsContent value="history">

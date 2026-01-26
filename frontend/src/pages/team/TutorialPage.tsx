@@ -8,7 +8,12 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion";
 
+import { useParams } from 'react-router-dom';
+import { useTeam } from '@/hooks/useTeam';
+
 export default function TutorialPage() {
+    const { teamSlug } = useParams<{ teamSlug: string }>();
+    const { data: team } = useTeam(teamSlug || '');
 
     return (
         <div className="container mx-auto py-8 px-4 space-y-6">
@@ -42,12 +47,12 @@ export default function TutorialPage() {
 
                 {/* 教練端教學 */}
                 <TabsContent value="coach" className="space-y-6 mt-6">
-                    <CoachTutorial />
+                    <CoachTutorial team={team} teamSlug={teamSlug} />
                 </TabsContent>
 
                 {/* 球員端教學 */}
                 <TabsContent value="player" className="space-y-6 mt-6">
-                    <PlayerTutorial />
+                    <PlayerTutorial team={team} teamSlug={teamSlug} />
                 </TabsContent>
 
                 {/* 常見問答 */}
@@ -60,10 +65,13 @@ export default function TutorialPage() {
 }
 
 // 教練端教學組件
-function CoachTutorial() {
+function CoachTutorial({ team, teamSlug }: { team: any; teamSlug?: string }) {
+    const loginUrl = `${window.location.origin}/${teamSlug}/login`;
+    const defaultPassword = teamSlug === 'shohoku-basketball' ? 'demo123' : '1234';
+
     return (
         <>
-            {/* 建立球隊流程 */}
+            {/* ... (建立球隊流程) */}
             <Card className="rounded-3xl border-none shadow-xl overflow-hidden">
                 <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
                     <CardTitle className="text-2xl font-black text-black">1. 建立球隊流程</CardTitle>
@@ -73,8 +81,8 @@ function CoachTutorial() {
                     <div className="space-y-4">
                         <StepCard
                             number="1"
-                            title="註冊帳號"
-                            description="使用 Email 註冊教練帳號，或透過 Google 快速登入。"
+                            title="註冊/登入帳號"
+                            description="本平台全面採用 Google 帳號快速登入，無需記憶額外密碼，安全又方便。"
                         />
                         <StepCard
                             number="2"
@@ -95,7 +103,7 @@ function CoachTutorial() {
                 </CardContent>
             </Card>
 
-            {/* 批次新增球員 */}
+            {/* ... (批次新增球員) */}
             <Card className="rounded-3xl border-none shadow-xl overflow-hidden">
                 <CardHeader className="bg-gradient-to-r from-blue-500/10 to-blue-500/5">
                     <CardTitle className="text-2xl font-black text-black">2. 批次新增球員</CardTitle>
@@ -127,7 +135,7 @@ function CoachTutorial() {
                 </CardContent>
             </Card>
 
-            {/* 儀表板功能 */}
+            {/* ... (儀表板功能) */}
             <Card className="rounded-3xl border-none shadow-xl overflow-hidden">
                 <CardHeader className="bg-gradient-to-r from-green-500/10 to-green-500/5">
                     <CardTitle className="text-2xl font-black text-black">3. 儀表板功能</CardTitle>
@@ -154,28 +162,55 @@ function CoachTutorial() {
                 </CardContent>
             </Card>
 
-            {/* 邀請機制設定 */}
+            {/* 球員啟用與登入引導 */}
             <Card className="rounded-3xl border-none shadow-xl overflow-hidden">
                 <CardHeader className="bg-gradient-to-r from-purple-500/10 to-purple-500/5">
-                    <CardTitle className="text-2xl font-black text-black">4. 邀請機制設定</CardTitle>
-                    <CardDescription className="font-medium">讓球員輕鬆加入球隊</CardDescription>
+                    <CardTitle className="text-2xl font-black text-black">4. 球員啟用與登入引導</CardTitle>
+                    <CardDescription className="font-medium">教練請依照以下步驟引導球員開始使用系統</CardDescription>
                 </CardHeader>
                 <CardContent className="p-8">
                     <div className="space-y-4">
                         <InvitationStep
                             number="1"
-                            title="啟用邀請連結"
-                            description="在「球隊設定」頁面中，開啟球員邀請機制並設定通行碼。"
+                            title="提供球隊登入網址與通行碼"
+                            description={
+                                <div className="space-y-2">
+                                    <p>將球隊專屬網址與通行碼分享給球員，登入時需先輸入通行碼驗證。</p>
+                                    <div className="bg-white/50 p-3 rounded-xl border border-purple-200 text-sm space-y-1">
+                                        <p className="flex justify-between">
+                                            <span className="text-purple-600 font-bold">登入網址：</span>
+                                            <span className="font-mono bg-purple-100 px-2 rounded">{loginUrl}</span>
+                                        </p>
+                                        <p className="flex justify-between">
+                                            <span className="text-purple-600 font-bold">球隊通行碼：</span>
+                                            <span className="font-mono bg-purple-100 px-2 rounded">{team?.invitation_code || '尚未設定'}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            }
                         />
                         <InvitationStep
                             number="2"
-                            title="分享連結或代碼"
-                            description="複製邀請連結或告知球員短代碼（例如: ABC123），讓球員自行註冊加入。"
+                            title="球員認領名字"
+                            description="球員成功進入網址並輸入通行碼後，在列表中找到並點擊自己的名字（認領帳號）。"
                         />
                         <InvitationStep
                             number="3"
-                            title="球員完成註冊"
-                            description="球員透過連結或輸入代碼後，系統會自動將其加入球隊名單。"
+                            title="輸入預設密碼"
+                            description={
+                                <div className="space-y-2">
+                                    <p>首次登入時，請球員輸入系統預設密碼。</p>
+                                    <div className="bg-white/50 p-3 rounded-xl border border-purple-200 text-sm flex justify-between">
+                                        <span className="text-purple-600 font-bold">系統預設密碼：</span>
+                                        <span className="font-mono bg-purple-100 px-2 rounded">{defaultPassword}</span>
+                                    </div>
+                                </div>
+                            }
+                        />
+                        <InvitationStep
+                            number="4"
+                            title="修改密碼與保存連結"
+                            description="登入後系統會要求修改密碼。請球員將登入後的「個人專屬短網址」加入書籤，下次直接使用該網址登入。"
                         />
                     </div>
                 </CardContent>
@@ -185,7 +220,7 @@ function CoachTutorial() {
 }
 
 // 球員端教學組件
-function PlayerTutorial() {
+function PlayerTutorial({ team, teamSlug }: { team: any; teamSlug?: string }) {
     return (
         <>
             {/* 球員登入流程 */}
@@ -198,13 +233,13 @@ function PlayerTutorial() {
                     <div className="space-y-4">
                         <StepCard
                             number="1"
-                            title="取得短代碼"
-                            description="向教練索取您的專屬短代碼（例如: XYZ123），這是您的登入憑證。"
+                            title="取得專屬登入頁"
+                            description="向教練索取球隊的專屬登入頁面網址，並在列表中點選您的名字。"
                         />
                         <StepCard
                             number="2"
-                            title="輸入代碼登入"
-                            description="在手機或電腦上開啟球隊登入頁面，輸入短代碼即可登入。"
+                            title="輸入密碼登入"
+                            description="首次登入請輸入教練提供的預設密碼，登入後系統會提示您修改個人密碼。"
                         />
                         <StepCard
                             number="3"
@@ -333,28 +368,19 @@ function FAQSection() {
                     {/* 帳號管理 */}
                     <AccordionItem value="account-1" className="border rounded-2xl px-6 bg-white shadow-sm">
                         <AccordionTrigger className="font-bold text-black hover:no-underline">
-                            如何註冊教練帳號？
+                            如何註冊/登入教練帳號？
                         </AccordionTrigger>
                         <AccordionContent className="text-black font-medium">
-                            點擊首頁的「註冊」按鈕，填寫 Email 與密碼即可完成註冊。您也可以選擇使用 Google 帳號快速登入。
+                            本系統支援 Google 帳號一鍵登入。點擊首頁的「登入」或「註冊」按鈕，選擇您的 Google 帳號即可快速啟用，無需填寫其他資料。
                         </AccordionContent>
                     </AccordionItem>
 
                     <AccordionItem value="account-2" className="border rounded-2xl px-6 bg-white shadow-sm">
                         <AccordionTrigger className="font-bold text-black hover:no-underline">
-                            忘記密碼怎麼辦？
+                            球員如何登入？
                         </AccordionTrigger>
                         <AccordionContent className="text-black font-medium">
-                            在登入頁面點擊「忘記密碼」，輸入註冊時使用的 Email，系統會寄送重設密碼的連結到您的信箱。
-                        </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="account-3" className="border rounded-2xl px-6 bg-white shadow-sm">
-                        <AccordionTrigger className="font-bold text-black hover:no-underline">
-                            球員如何取得登入代碼？
-                        </AccordionTrigger>
-                        <AccordionContent className="text-black font-medium">
-                            教練在「球員管理」頁面中，每位球員都有專屬的短代碼（例如: ABC123）。教練可以將此代碼告知球員，球員即可使用代碼登入。
+                            球員需透過球隊專屬的登入網址，在列表中認領自己的名字並輸入預設密碼。首次登入後請務必修改密碼以確保安全。
                         </AccordionContent>
                     </AccordionItem>
 
@@ -448,15 +474,15 @@ function FAQSection() {
 }
 
 // 輔助組件
-function StepCard({ number, title, description }: { number: string; title: string; description: string }) {
+function StepCard({ number, title, description }: { number: string; title: string; description: React.ReactNode }) {
     return (
         <div className="flex items-start gap-4 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors">
             <div className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-black text-lg flex-shrink-0">
                 {number}
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-black text-lg">{title}</h3>
-                <p className="text-black font-medium mt-1">{description}</p>
+                <div className="text-black font-medium mt-1">{description}</div>
             </div>
         </div>
     );
@@ -484,15 +510,15 @@ function DashboardFeature({ title, description, color }: { title: string; descri
     );
 }
 
-function InvitationStep({ number, title, description }: { number: string; title: string; description: string }) {
+function InvitationStep({ number, title, description }: { number: string; title: string; description: React.ReactNode }) {
     return (
         <div className="flex items-start gap-4 p-5 rounded-2xl bg-purple-50 border-2 border-purple-200">
             <div className="h-10 w-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-black text-lg flex-shrink-0">
                 {number}
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-black text-lg">{title}</h3>
-                <p className="text-black font-medium mt-1">{description}</p>
+                <div className="text-black font-medium mt-1">{description}</div>
             </div>
         </div>
     );

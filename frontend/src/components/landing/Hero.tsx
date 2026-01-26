@@ -85,24 +85,25 @@ export function Hero({ heroImage }: HeroProps) {
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4">
                         <div className="text-white font-black text-lg mb-2 sm:mb-0 sm:mr-4 flex items-center uppercase tracking-widest">
-                            系統演示：
+                            系統展示：
                         </div>
-                        <Link to="/login?demo=coach" className="sm:w-auto">
-                            <Button
-                                size="lg"
-                                className="w-full sm:w-auto bg-[#c1ff00] hover:bg-[#d4ff33] text-black font-black text-xl px-12 py-8 uppercase tracking-widest shadow-[0_0_20px_rgba(193,255,0,0.3)] hover:shadow-[0_0_30px_rgba(193,255,0,0.5)] transition-all"
-                            >
-                                <PlayCircle className="mr-3 w-6 h-6" />
-                                立即體驗 (教練端)
-                            </Button>
-                        </Link>
-                        <Link to="/doraemon-baseball/login" className="sm:w-auto">
+                        <Link to="/login?demo=coach" className="sm:w-auto" target="_blank" rel="noopener noreferrer">
                             <Button
                                 size="lg"
                                 variant="outline"
                                 className="w-full sm:w-auto border-2 border-[#c1ff00] text-[#c1ff00] hover:bg-[#c1ff00] hover:text-black font-black text-xl px-12 py-8 uppercase tracking-widest transition-all"
                             >
-                                選手端演示
+                                <PlayCircle className="mr-3 w-6 h-6" />
+                                教練端
+                            </Button>
+                        </Link>
+                        <Link to="/shohoku-basketball/p/3ss/login" className="sm:w-auto" target="_blank" rel="noopener noreferrer">
+                            <Button
+                                size="lg"
+                                variant="outline"
+                                className="w-full sm:w-auto border-2 border-[#c1ff00] text-[#c1ff00] hover:bg-[#c1ff00] hover:text-black font-black text-xl px-12 py-8 uppercase tracking-widest transition-all"
+                            >
+                                選手端
                             </Button>
                         </Link>
                     </div>

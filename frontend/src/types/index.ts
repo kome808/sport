@@ -41,6 +41,7 @@ export interface Team {
     is_invitation_enabled?: boolean;
     coach_invitation_code?: string;
     is_coach_invitation_enabled?: boolean;
+    is_demo?: boolean;
     created_at: string;
     updated_at: string;
 }

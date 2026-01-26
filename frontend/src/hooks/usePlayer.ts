@@ -128,7 +128,7 @@ export function usePlayer(playerCode: string | undefined) {
             let query = supabase
                 .schema(SCHEMA_NAME)
                 .from('players')
-                .select('*')
+                .select('id, team_id, name, jersey_number, position, short_code, avatar_url, status, is_active, is_claimed, created_at, updated_at')
                 .eq('is_active', true);
 
             if (isShortCode) {

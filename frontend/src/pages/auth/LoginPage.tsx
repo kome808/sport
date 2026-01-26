@@ -9,7 +9,6 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
     const { user, isAnonymous, isLoading: authLoading, signInWithGoogle, signInAnonymously } = useAuth();
@@ -79,29 +78,20 @@ export default function LoginPage() {
                                             type="button"
                                             onClick={async () => {
                                                 setIsLoading(true);
-                                                const result = await (signInAnonymously as any)();
-                                                if (result.success) {
-                                                    console.log('匿名登入成功，正在獲取展示球隊...');
-                                                    // 取得第一支球隊並直接跳轉，避免在 dashboard 轉圈圈
-                                                    const { data: teams, error: rpcError } = await supabase.rpc('get_my_teams');
-
-                                                    if (rpcError) {
-                                                        console.error('RPC Error:', rpcError);
-                                                        setErrorMessage('無法取得展示球隊數據');
-                                                        setIsLoading(false);
-                                                        return;
-                                                    }
-
-                                                    if (teams && teams.length > 0) {
-                                                        const targetPath = `/${teams[0].slug}`;
-                                                        console.log(`正在跳轉至展示球隊: ${targetPath}`);
-                                                        navigate(targetPath);
+                                                setErrorMessage(null);
+                                                try {
+                                                    const result = await (signInAnonymously as any)();
+                                                    if (result.success) {
+                                                        console.log('匿名登入成功，正在導向展示球隊...');
+                                                        // 使用 window.location.href 進行硬導向，這是最穩健的跨驗證狀態跳轉方式
+                                                        window.location.href = '/shohoku-basketball';
                                                     } else {
-                                                        console.warn('找不到任何展示球隊，退回到儀表板');
-                                                        navigate('/dashboard');
+                                                        setErrorMessage(result.error?.message || '匿名登入失敗');
+                                                        setIsLoading(false);
                                                     }
-                                                } else {
-                                                    setErrorMessage(result.error?.message || '匿名登入失敗');
+                                                } catch (err: any) {
+                                                    console.error('Demo Login Exception:', err);
+                                                    setErrorMessage('系統發生錯誤，請稍後再試');
                                                     setIsLoading(false);
                                                 }
                                             }}
@@ -148,17 +138,7 @@ export default function LoginPage() {
                                 </p>
                             </div>
 
-                            <div className="flex justify-center">
-                                <button
-                                    onClick={() => {
-                                        localStorage.clear();
-                                        window.location.reload();
-                                    }}
-                                    className="text-[10px] text-slate-300 hover:text-slate-500 font-medium underline uppercase tracking-tighter"
-                                >
-                                    登入遇到問題？清除所有連線紀錄
-                                </button>
-                            </div>
+
                         </div>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-4 pb-10 pt-2">

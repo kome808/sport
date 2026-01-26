@@ -5,7 +5,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, SCHEMA_NAME } from '@/lib/supabase';
-import type { Team, Player, FatigueMetrics } from '@/types';
+import type { Team, Player, DailyRecord, FatigueMetrics } from '@/types';
 import bcrypt from 'bcryptjs';
 
 // ================================================
@@ -40,6 +40,12 @@ export function useTeam(slug: string) {
                 .single(); // 直接用 single() 效率更高
 
             if (error) {
+                // Ignore AbortError which happens on rapid navigation
+                if (error.message?.includes('AbortError') || (error as any).name === 'AbortError') {
+                    console.warn(`[useTeam] Request aborted: ${slug}`);
+                    return null; // or throw if you want react-query to retry? No, abort means stop.
+                }
+
                 console.error(`[useTeam] ❌ API Request Failed:`, error);
                 throw error;
             }
@@ -82,13 +88,13 @@ export function usePlayers(teamId: string | undefined, status: 'active' | 'gradu
 // 取得球員每日紀錄 (含今日狀態)
 // ================================================
 
-export function usePlayersWithTodayStatus(teamId: string | undefined, status: 'active' | 'graduated' | 'all' = 'active') {
+export function usePlayersWithTodayStatus(teamId: string | undefined, status: 'active' | 'graduated' | 'all' = 'active', date?: string) {
     return useQuery({
-        queryKey: [...teamKeys.players(teamId || ''), 'withStatus', status],
+        queryKey: [...teamKeys.players(teamId || ''), 'withStatus', status, date],
         queryFn: async () => {
             if (!teamId) return [];
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = date || new Date().toISOString().split('T')[0];
 
             // 取得球員
             let query = supabase
@@ -148,13 +154,13 @@ export function usePlayersWithTodayStatus(teamId: string | undefined, status: 'a
 // 取得球隊統計資料 (儀表板用)
 // ================================================
 
-export function useTeamStats(teamId: string | undefined) {
+export function useTeamStats(teamId: string | undefined, date?: string) {
     return useQuery({
-        queryKey: ['teamStats', teamId],
+        queryKey: ['teamStats', teamId, date],
         queryFn: async () => {
             if (!teamId) return null;
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = date || new Date().toISOString().split('T')[0];
 
             // 取得球員數
             const { count: playerCount } = await supabase
@@ -237,13 +243,13 @@ export function useTeamStats(teamId: string | undefined) {
 // 取得高風險球員列表
 // ================================================
 
-export function useHighRiskPlayers(teamId: string | undefined) {
+export function useHighRiskPlayers(teamId: string | undefined, date?: string) {
     return useQuery({
-        queryKey: ['highRiskPlayers', teamId],
+        queryKey: ['highRiskPlayers', teamId, date],
         queryFn: async () => {
             if (!teamId) return [];
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = date || new Date().toISOString().split('T')[0];
 
             // 取得球員
             const { data: players } = await supabase
@@ -547,9 +553,9 @@ export interface TeamFatigueData {
     metrics: FatigueMetrics;
 }
 
-export function useTeamFatigueOverview(teamId: string | undefined) {
+export function useTeamFatigueOverview(teamId: string | undefined, date?: string) {
     return useQuery({
-        queryKey: ['teamFatigue', teamId],
+        queryKey: ['teamFatigue', teamId, date],
         queryFn: async () => {
             if (!teamId) return [];
 
@@ -557,7 +563,7 @@ export function useTeamFatigueOverview(teamId: string | undefined) {
                 .schema(SCHEMA_NAME)
                 .rpc('get_team_fatigue_overview', {
                     p_team_id: teamId,
-                    p_date: new Date().toISOString().split('T')[0]
+                    p_date: date || new Date().toISOString().split('T')[0]
                 });
 
             if (error) throw error;
@@ -781,5 +787,38 @@ export function useMyTeams(enabled: boolean = true) {
             }[];
         },
         enabled: enabled,
+    });
+}
+
+// ================================================
+// 取得全隊特定日期的每日紀錄 (用於儀表板總覽表)
+// ================================================
+
+export function useTeamDailyRecords(teamId: string | undefined, date: string) {
+    return useQuery({
+        queryKey: ['teamDailyRecords', teamId, date],
+        queryFn: async () => {
+            if (!teamId) return [];
+
+            const { data: players } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('players')
+                .select('id')
+                .eq('team_id', teamId)
+                .eq('is_active', true);
+
+            const playerIds = (players || []).map(p => p.id);
+
+            const { data, error } = await supabase
+                .schema(SCHEMA_NAME)
+                .from('daily_records')
+                .select('*')
+                .eq('record_date', date)
+                .in('player_id', playerIds);
+
+            if (error) throw error;
+            return data as DailyRecord[];
+        },
+        enabled: !!teamId,
     });
 }

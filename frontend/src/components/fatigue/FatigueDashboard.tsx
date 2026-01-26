@@ -16,23 +16,29 @@ interface FatigueDashboardProps {
     playerId: string;
     variant?: 'full' | 'compact';
     className?: string;
+    todayDate?: string; // 加入固定日期支持
+    hideFeedback?: boolean; // 新增：隱藏心得回饋
 }
 
 export default function FatigueDashboard({
     playerId,
     variant = 'compact',
-    className
+    className,
+    todayDate,
+    hideFeedback = false
 }: FatigueDashboardProps) {
-    const { data: metrics, isLoading, error } = useFatigueMetrics(playerId);
-    const { data: historyData, isLoading: isHistoryLoading } = useFatigueHistory(playerId, 14, new Date());
+    // 基準日期處理
+    const baseDate = todayDate ? new Date(todayDate) : new Date();
+
+    const { data: metrics, isLoading, error } = useFatigueMetrics(playerId, baseDate);
+    const { data: historyData, isLoading: isHistoryLoading } = useFatigueHistory(playerId, 14, baseDate);
 
     // Get recent records for yesterday's comparison
-    const today = new Date();
-    const threeDaysAgo = new Date(today);
-    threeDaysAgo.setDate(today.getDate() - 3);
+    const threeDaysAgo = new Date(baseDate);
+    threeDaysAgo.setDate(baseDate.getDate() - 3);
     const { data: recentRecords } = usePlayerRecords(playerId, {
         from: threeDaysAgo,
-        to: today
+        to: baseDate
     });
 
     // Find latest feedback from recent records (sort descending by date)
@@ -276,7 +282,7 @@ export default function FatigueDashboard({
             )}
 
             {/* Latest Feedback Section */}
-            {latestFeedbackRecord && (
+            {latestFeedbackRecord && !hideFeedback && (
                 <div className="mt-6 mb-8">
                     <Card className="border-2 border-primary/20 bg-primary/5 overflow-hidden shadow-none">
                         <CardHeader className="bg-white/50 p-5 border-b border-primary/10">
