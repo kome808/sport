@@ -71,13 +71,18 @@ export default function FatigueDashboard({
     }
 
 
-    // 計算 RHR 進度 (假設 10 bpm 為警示點)
+    // 計算 RHR 進度 (max 15 bpm)
     const rhrDiff = metrics.rhr.difference || 0;
-    const rhrPercent = Math.min(100, Math.max(0, (rhrDiff + 5) * 10)); // -5 到 +5 對應 0% 到 100%
+    const rhrPercent = Math.min(100, Math.max(0, (rhrDiff + 4) * 10)); // Shift for visual
 
-    // sRPE 進度 (滿分 1000)
-    const srpeLoad = metrics.srpe?.load_au || 0;
-    const srpePercent = Math.min(100, (srpeLoad / 1000) * 100);
+    // sRPE 週變化率進度 (max 20%)
+    const loadPct = metrics.srpe?.pct_change || 0;
+    const srpePercent = Math.min(100, Math.max(0, (loadPct / 20) * 100));
+
+    // ACWR 進度 (max 2.5)
+    // 0.8 is green start, 1.3 yellow, 1.5 red, 2.0 purple
+    const acwrVal = metrics.acwr.acwr || 0;
+    const acwrPercent = Math.min(100, (acwrVal / 2.5) * 100);
 
     return (
         <div className={className}>
@@ -89,7 +94,7 @@ export default function FatigueDashboard({
                     value={metrics.rhr.current_rhr ? `${metrics.rhr.current_rhr}` : '-'}
                     status={metrics.rhr.status === 'gray' ? 'gray' : metrics.rhr.status as any}
                     description={metrics.rhr.difference ?
-                        `較昨日比 ${metrics.rhr.difference > 0 ? '🔺 增加' : '🔻 減少'} ${Math.abs(metrics.rhr.difference)} bpm` :
+                        `較基準線 ${metrics.rhr.difference > 0 ? '🔺 增加' : '🔻 減少'} ${Math.abs(metrics.rhr.difference)} bpm` :
                         '尚無基準數據'}
                     icon={<Heart className="h-4 w-4" />}
                     onInfoClick={() => handleMetricClick('rhr')}
@@ -110,9 +115,9 @@ export default function FatigueDashboard({
                             )}
                         </div>
                         <div className="flex justify-between text-[10px] text-slate-400 font-black mt-1 px-0.5 uppercase tracking-tighter">
-                            <span>-5bpm</span>
+                            <span>+4bpm</span>
                             <span>良好</span>
-                            <span>+5bpm</span>
+                            <span>+9bpm</span>
                             <span>疲勞</span>
                             <span>+10bpm</span>
                         </div>
@@ -138,12 +143,12 @@ export default function FatigueDashboard({
                                         "text-4xl font-black tracking-tighter leading-none",
                                         metrics.wellness.status === 'gray' ? "text-slate-400" :
                                             metrics.wellness.status === 'black' ? "text-white" :
-                                                metrics.wellness.total >= 20 ? "text-status-low-dark" :
-                                                    metrics.wellness.total >= 15 ? "text-status-med-dark" : "text-status-high-dark"
+                                                (metrics.wellness.z_score !== null && metrics.wellness.z_score < -2) ? "text-status-high-dark" :
+                                                    (metrics.wellness.z_score !== null && metrics.wellness.z_score < -1) ? "text-status-med-dark" : "text-status-low-dark"
                                     )}>
                                         {metrics.wellness.total}
                                     </span>
-                                    <span className="text-[10px] font-black text-slate-500 uppercase mt-0.5">/ 25</span>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase mt-0.5">/ 50</span>
                                 </div>
                                 <div className="w-full h-full">
                                     <FatigueRadarChart data={metrics.wellness.items} />
@@ -161,17 +166,9 @@ export default function FatigueDashboard({
                     value={metrics.srpe ? `${metrics.srpe.load_au}` : '-'}
                     status={metrics.srpe?.status || 'gray'}
                     description={
-                        metrics.srpe && recentRecords && recentRecords.length >= 2
-                            ? (() => {
-                                // Sort by date descending to get yesterday's record
-                                const sorted = [...recentRecords].sort((a, b) =>
-                                    new Date(b.record_date).getTime() - new Date(a.record_date).getTime()
-                                );
-                                const yesterdayLoad = sorted[1]?.training_load_au || 0;
-                                const diff = metrics.srpe.load_au - yesterdayLoad;
-                                return `前日 ${yesterdayLoad} AU，${diff > 0 ? '增加' : diff < 0 ? '減少' : '持平'} ${Math.abs(diff)} AU`;
-                            })()
-                            : '訓練量 AU'
+                        metrics.srpe?.pct_change !== undefined
+                            ? `週變化率 ${metrics.srpe.pct_change > 0 ? '+' : ''}${metrics.srpe.pct_change}%`
+                            : '今日負荷 AU'
                     }
                     icon={<TrendingUp className="h-4 w-4" />}
                     onInfoClick={() => handleMetricClick('srpe')}
@@ -192,11 +189,11 @@ export default function FatigueDashboard({
                             )}
                         </div>
                         <div className="flex justify-between text-[10px] text-slate-400 font-black mt-1 px-0.5 uppercase tracking-tighter">
-                            <span>0 AU</span>
-                            <span>適中</span>
-                            <span>400</span>
-                            <span>高</span>
-                            <span>800 AU+</span>
+                            <span>0%</span>
+                            <span>穩定</span>
+                            <span>10%</span>
+                            <span>偏高</span>
+                            <span>15%+</span>
                         </div>
                     </div>
                 </MetricCard>
@@ -205,19 +202,12 @@ export default function FatigueDashboard({
                 <MetricCard
                     title="急慢性負荷比 ACWR"
                     value={metrics.acwr.acwr ?? 'N/A'}
-                    status={metrics.acwr.risk_level === 'gray' ? 'gray' : metrics.acwr.risk_level}
+                    status={metrics.acwr.risk_level === 'purple' ? 'black' : metrics.acwr.risk_level === 'gray' ? 'gray' : metrics.acwr.risk_level}
                     description={
-                        metrics.acwr.acwr && recentRecords && recentRecords.length >= 2
-                            ? (() => {
-                                // Sort by date descending to get yesterday's record
-                                const sorted = [...recentRecords].sort((a, b) =>
-                                    new Date(b.record_date).getTime() - new Date(a.record_date).getTime()
-                                );
-                                const yesterdayACWR = sorted[1]?.acwr || 0;
-                                const diff = metrics.acwr.acwr - yesterdayACWR;
-                                return `前日 ${yesterdayACWR.toFixed(2)}，${diff > 0 ? '增加' : diff < 0 ? '減少' : '持平'} ${Math.abs(diff).toFixed(2)}`;
-                            })()
-                            : (metrics.acwr.risk_level === 'green' ? '🟢 狀態穩定' : '📊 監控中')
+                        metrics.acwr.risk_level === 'purple' ? '🟣 極高風險 (≥ 2.0)' :
+                            metrics.acwr.risk_level === 'red' ? '🔴 高風險區 (> 1.5)' :
+                                metrics.acwr.risk_level === 'yellow' ? '🟡 需注意 / 低負荷' :
+                                    '🟢 狀態穩定 (Sweet Spot)'
                     }
                     icon={<Activity className="h-4 w-4" />}
                     onInfoClick={() => handleMetricClick('acwr')}
@@ -231,18 +221,19 @@ export default function FatigueDashboard({
                                     className={cn(
                                         "h-full rounded-full transition-all duration-700 shadow-sm",
                                         metrics.acwr.risk_level === 'green' ? 'bg-[#53EF8B]' :
-                                            metrics.acwr.risk_level === 'red' ? 'bg-[#EF4F3B]' : 'bg-[#EFB954]'
+                                            metrics.acwr.risk_level === 'red' ? 'bg-[#EF4F3B]' :
+                                                metrics.acwr.risk_level === 'purple' ? 'bg-purple-500' : 'bg-[#EFB954]'
                                     )}
-                                    style={{ width: `${Math.min(100, (metrics.acwr.acwr / 2.0) * 100)}%` }}
+                                    style={{ width: `${acwrPercent}%` }}
                                 />
                             )}
                         </div>
                         <div className="flex justify-between text-[10px] text-slate-400 font-black mt-1 px-0.5 uppercase tracking-tighter">
-                            <span>0.5</span>
+                            <span>0.8</span>
                             <span>安全</span>
                             <span>1.3</span>
-                            <span>警戒</span>
-                            <span>1.5+</span>
+                            <span>1.5</span>
+                            <span>2.0+</span>
                         </div>
                     </div>
                 </MetricCard>

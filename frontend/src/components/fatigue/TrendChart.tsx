@@ -113,27 +113,7 @@ export function TrendChart({ playerId, days = 14 }: TrendChartProps) {
         );
     };
 
-    // 高風險閾值線 Layer
-    const ThresholdLineLayer = ({ innerWidth, yScale }: any) => {
-        const y = yScale(600); // sRPE 600 分界線
-        if (!y) return null;
 
-        return (
-            <g transform={`translate(0, ${y})`}>
-                <line
-                    x1={0}
-                    x2={innerWidth}
-                    stroke="#EF4444"
-                    strokeWidth={1}
-                    strokeDasharray="4 4"
-                    opacity={0.8}
-                />
-                <text x={0} y={-4} fill="#EF4444" fontSize={10} fontWeight="bold">
-                    High Risk (600)
-                </text>
-            </g>
-        );
-    };
 
     // 自訂 Tooltip
     const CustomTooltip = ({ id: _id, value, color, data }: any) => (
@@ -179,7 +159,7 @@ export function TrendChart({ playerId, days = 14 }: TrendChartProps) {
                         padding={0.4}
                         valueScale={{ type: 'linear' }}
                         indexScale={{ type: 'band', round: true }}
-                        colors={({ data }) => data.sRPE >= 600 ? '#EF4444' : '#3B82F6'}
+                        colors="#3B82F6"
                         borderRadius={4}
                         axisTop={null}
                         axisRight={null} // 我們利用 Layer 自己畫
@@ -212,7 +192,6 @@ export function TrendChart({ playerId, days = 14 }: TrendChartProps) {
                             'grid',
                             'axes',
                             'bars',
-                            ThresholdLineLayer,
                             LineLayer, // 疊加折線層
                         ]}
                         tooltip={CustomTooltip}

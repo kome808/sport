@@ -43,7 +43,7 @@ export function ACWRTrendChart({ historyData }: ACWRTrendChartProps) {
                 yScale={{
                     type: 'linear',
                     min: 0,
-                    max: 2.5, // Fixed max for consistency
+                    max: 3.0, // Increased max for purple zone
                     stacked: false,
                     reverse: false
                 }}
@@ -72,6 +72,13 @@ export function ACWRTrendChart({ historyData }: ACWRTrendChartProps) {
                 markers={[
                     {
                         axis: 'y',
+                        value: 2.0,
+                        lineStyle: { stroke: '#a855f7', strokeWidth: 2, strokeDasharray: '4 4' }, // Purple
+                        legend: 'P 極高風險 (2.0)',
+                        legendPosition: 'top-left',
+                    },
+                    {
+                        axis: 'y',
                         value: 1.5,
                         lineStyle: { stroke: '#EF4F3B', strokeWidth: 2, strokeDasharray: '4 4' },
                         legend: 'H 高風險 (1.5)',
@@ -87,8 +94,8 @@ export function ACWRTrendChart({ historyData }: ACWRTrendChartProps) {
                     {
                         axis: 'y',
                         value: 0.8,
-                        lineStyle: { stroke: '#53EF8B', strokeWidth: 1, strokeDasharray: '4 4' },
-                        legend: 'S 安全 (0.8)',
+                        lineStyle: { stroke: '#EFB954', strokeWidth: 1, strokeDasharray: '4 4' }, // Yellow for low load
+                        legend: 'L 低負荷 (0.8)',
                         legendPosition: 'bottom-left',
                     }
                 ]}

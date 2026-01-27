@@ -82,7 +82,7 @@ export default function WellnessChart({ records }: WellnessChartProps) {
                         yScale={{
                             type: 'linear',
                             min: chartMode === 'rhr' ? 'auto' : 0,
-                            max: chartMode === 'wellness' ? 25 : 'auto',
+                            max: chartMode === 'wellness' ? 50 : 'auto',
                             stacked: false,
                             reverse: false
                         }}
@@ -148,7 +148,7 @@ export default function WellnessChart({ records }: WellnessChartProps) {
 
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <p className="text-[11px] text-slate-500 font-bold text-center">
-                    {chartMode === 'wellness' ? '💡 Wellness 總分範圍 5-25，分數越高代表身體狀態越理想' :
+                    {chartMode === 'wellness' ? '💡 Wellness 總分範圍 5-50，分數越高代表身體狀態越理想' :
                         chartMode === 'load' ? '💡 訓練負荷 (Training Load) = 自覺強度 (sRPE) × 總訓練時間' :
                             '💡 晨間心跳 (RHR) 的變化能反映自主神經系統的疲勞與恢復程度'}
                 </p>

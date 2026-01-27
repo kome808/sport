@@ -130,46 +130,51 @@ export interface AuthState {
 }
 
 // 疲勞監測相關型別
+// 疲勞監測相關型別 (Updated 2026-01-28 for new Schema)
 export interface FatigueMetrics {
     acwr: {
-        short_term_load: number;
-        long_term_load: number;
+        chronic_load: number;
+        acute_load: number;
         acwr: number | null;
-        risk_level: 'green' | 'yellow' | 'red' | 'black' | 'gray';
+        risk_level: 'green' | 'yellow' | 'red' | 'purple' | 'black' | 'gray';
     };
-    psi: {
+    psi?: { // 暫時保留，雖然規格書未強調 PSI
         psi_score: number;
         wellness_component: number;
         load_component: number;
         status: 'green' | 'yellow' | 'red' | 'black' | 'gray';
     };
     rhr: {
-        baseline_rhr: number | null;
         current_rhr: number | null;
+        baseline_rhr: number | null;
         difference: number | null;
-        status: 'green' | 'yellow' | 'orange' | 'red' | 'black' | 'gray';
-        risk_level?: string;
+        status: 'green' | 'yellow' | 'red' | 'black' | 'gray';
     };
     wellness: {
         total: number;
+        z_score: number | null; // 新增 Z-score
+        avg_score: number | null;
+        status: 'green' | 'yellow' | 'red' | 'black' | 'gray';
         items: {
             sleep: number;
-            fatigue: number;
-            mood: number;
             stress: number;
+            fatigue: number;
             soreness: number;
+            mood: number;
         };
-        status: 'green' | 'yellow' | 'red' | 'black' | 'gray';
-        risk_level?: string;
     } | null;
     srpe: {
-        score: number;
-        minutes: number;
-        load_au: number;
+        // 保留原有的 score 與 minutes 為了向後相容或前端已使用
+        score?: number;
+        minutes?: number;
+
+        load_au: number;          // 今日負荷
+        weekly_load?: number;     // 這週負荷
+        pct_change?: number;      // 變化率 %
+        abs_change?: number;      // 變化值
         status: 'green' | 'yellow' | 'red' | 'black' | 'gray';
-        risk_level?: string;
     } | null;
-    honesty: {
+    honesty: { // 暫時保留
         honesty_score: number | null;
         conflict_type: 'none' | 'moderate' | 'severe' | 'unknown';
         message: string;

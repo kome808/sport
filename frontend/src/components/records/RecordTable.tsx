@@ -65,7 +65,7 @@ export default function RecordTable({ records, compact = false }: RecordTablePro
                         </span>
                         <div className="flex items-center gap-3">
                             <span className="text-sm">
-                                Wellness: {record.wellness_total || '-'}/25
+                                Wellness: {record.wellness_total || '-'}/50
                             </span>
                             {record.risk_level && (
                                 <span

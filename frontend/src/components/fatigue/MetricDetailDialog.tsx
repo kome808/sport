@@ -30,9 +30,10 @@ export default function MetricDetailDialog({
             how: "短期負荷(7天) ÷ 長期負荷(28天)",
             ranges: [
                 { range: "0.80 - 1.30", status: "green", label: "安全 (Sweet Spot)", advice: "正常訓練" },
-                { range: "1.31 - 1.50", status: "yellow", label: "注意", advice: "監測 3 天，避免劇烈增量" },
-                { range: "> 1.50", status: "red", label: "高風險 (Danger Zone)", advice: "立即降量 30%，受傷風險增加 4.8 倍" },
-                { range: "< 0.80", status: "green", label: "低負荷", advice: "負荷不足可能反而降低體能" }
+                { range: "1.31 - 1.49", status: "yellow", label: "注意", advice: "監測 3 天，避免劇烈增量" },
+                { range: "1.50 - 1.99", status: "red", label: "高風險 (Danger Zone)", advice: "立即降量 30%，受傷風險增加 4.8 倍" },
+                { range: "≥ 2.0", status: "purple", label: "極高風險", advice: "受傷風險是平時的 5-7 倍，需嚴格監控" },
+                { range: "< 0.80", status: "yellow", label: "低負荷風險", advice: "負荷不足可能反而降低體能，增加未來受傷機率" }
             ],
             science: "Williams et al. (2017): ACWR > 1.5 時，受傷風險顯著增加。"
         },
@@ -52,38 +53,38 @@ export default function MetricDetailDialog({
             title: "晨間心跳 RHR",
             subtitle: "生理疲勞指標",
             meaning: "反映自主神經系統的恢復狀態",
-            how: "今日 RHR - 過去 14 天平均基準",
+            how: "今日 RHR - 過去 7 天平均基準",
             ranges: [
-                { range: "± 3 bpm", status: "green", label: "正常", advice: "恢復充足" },
-                { range: "+ 5 bpm", status: "yellow", label: "輕微疲勞", advice: "訓練量降低 20%" },
-                { range: "+ 10 bpm", status: "orange", label: "明顯疲勞", advice: "建議進行輕恢復訓練" },
-                { range: "+ 15 bpm", status: "red", label: "高度疲勞", advice: "建議完全休息" }
+                { range: "± 4 bpm", status: "green", label: "正常", advice: "恢復充足" },
+                { range: "+ 5 bpm", status: "yellow", label: "高風險", advice: "訓練量降低 20%，可能是過度訓練前兆" },
+                { range: "≥ + 10 bpm", status: "red", label: "嚴重風險", advice: "強制休息，與過度訓練症候群或生病高度相關" }
             ],
             science: "Teo et al. (2016): RHR 的異常升高與過度訓練症候群 (OTS) 高度相關。"
         },
         wellness: {
             title: "身心狀態 Wellness",
             subtitle: "主觀恢復指標",
-            meaning: "包含睡眠、疲勞、心情、壓力、痠痛的綜合評估",
-            how: "5 項指標總分 (滿分 25 分)",
+            meaning: "包含睡眠、疲勞、心情、壓力、痠痛的綜合評估 (Z-score)",
+            how: "5 項指標總分 (滿分 50 分) 與個人基準比較",
             ranges: [
-                { range: "20 - 25", status: "green", label: "良好", advice: "身心狀態穩定" },
-                { range: "15 - 19", status: "yellow", label: "中等", advice: "需關注壓力源或睡眠品質" },
-                { range: "< 15", status: "red", label: "不佳", advice: "需進行教練面談或心理輔導" }
+                { range: "Z-score > -1", status: "green", label: "良好", advice: "身心狀態穩定" },
+                { range: "-1 > Z > -2", status: "yellow", label: "注意", advice: "需關注壓力源或睡眠品質" },
+                { range: "Z-score < -2", status: "red", label: "高風險", advice: "可能需要教練面談或調整訓練" },
+                { range: "下降 > 20%", status: "red", label: "顯著下滑", advice: "若資料不足 28 天，改採下降幅度警示" }
             ],
             science: "Saw et al. (2016): 主觀 Wellness 問卷比客觀血液指標更能預測訓練反應。"
         },
         srpe: {
             title: "今日訓練負荷 sRPE",
             subtitle: "內部訓練負荷",
-            meaning: "量化今日訓練的總體壓力",
-            how: "RPE (0-10) × 訓練時間 (分鐘)",
+            meaning: "量化訓練總體壓力與週變化",
+            how: "RPE × 訓練時間 (計算週負荷變化率)",
             ranges: [
-                { range: "0 - 399", status: "green", label: "低/正常負荷", advice: "正常恢復" },
-                { range: "400 - 599", status: "yellow", label: "中高負荷", advice: "隔日建議安排輕量訓練" },
-                { range: "> 600", status: "red", label: "極高負荷", advice: "必須安排充足休息" }
+                { range: "< 10%", status: "green", label: "穩定", advice: "負荷增加在安全範圍內" },
+                { range: "10% - 15%", status: "yellow", label: "偏高", advice: "增量稍快，需留意疲勞累積" },
+                { range: "> 15% 或 >1000AU", status: "red", label: "危險增量", advice: "負荷暴增，非接觸性受傷風險顯著提高" }
             ],
-            science: "Foster et al. (2001): sRPE 是監控內部負荷的黃金標準。"
+            science: "Gabbett (2016): 週負荷增加超過 15% 會顯著增加受傷風險。"
         },
         honesty: {
             title: "數據誠實度警示 Honesty",
@@ -107,6 +108,7 @@ export default function MetricDetailDialog({
             case 'yellow': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
             case 'orange': return 'bg-orange-100 text-orange-800 border-orange-200';
             case 'red': return 'bg-red-100 text-red-800 border-red-200';
+            case 'purple': return 'bg-purple-100 text-purple-800 border-purple-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
@@ -118,7 +120,7 @@ export default function MetricDetailDialog({
                     <DialogTitle className="text-xl flex items-center gap-2">
                         {info.title}
                         {data && metricType === 'acwr' && (
-                            <Badge variant={data.acwr.risk_level === 'red' ? 'destructive' : 'outline'}>
+                            <Badge className={data.acwr.risk_level === 'purple' ? 'bg-purple-500 hover:bg-purple-600' : ''} variant={data.acwr.risk_level === 'red' ? 'destructive' : 'outline'}>
                                 當前: {data.acwr.acwr ?? 'N/A'}
                             </Badge>
                         )}
@@ -198,29 +200,65 @@ export default function MetricDetailDialog({
 
 function checkCurrentRange(type: string, data: any, rangeStr: string): boolean {
     if (!data) return false;
+
+    // ACWR 檢查
     if (type === 'acwr') {
         const risk = data.acwr.risk_level;
-        if (risk === 'red' && rangeStr.includes('>')) return true;
-        if (risk === 'yellow' && rangeStr.includes('1.50')) return true;
-        if (risk === 'green' && (rangeStr.includes('0.80') || rangeStr.includes('1.30'))) return true;
+        // Purple >= 2.0
+        if (risk === 'purple' && rangeStr.includes('≥ 2.0')) return true;
+        // Red 1.5 - 1.99
+        if (risk === 'red' && rangeStr.includes('1.50')) return true;
+        // Yellow (High) 1.3 - 1.49
+        if (risk === 'yellow' && data.acwr.acwr >= 1.3 && rangeStr.includes('1.31')) return true;
+        // Yellow (Low) < 0.8
+        if (risk === 'yellow' && data.acwr.acwr < 0.8 && rangeStr.includes('< 0.80')) return true;
+        // Green
+        if (risk === 'green' && rangeStr.includes('0.80 - 1.30')) return true;
     }
-    if (type === 'wellness') {
-        const total = data.wellness?.total ?? 0;
-        if (total >= 20 && rangeStr.includes('20')) return true;
-        if (total >= 15 && total < 20 && rangeStr.includes('15')) return true;
-        if (total < 15 && total > 0 && rangeStr.includes('<')) return true;
+
+    // Wellness 檢查
+    else if (type === 'wellness') {
+        const status = data.wellness?.status;
+        const z = data.wellness?.z_score;
+
+        // Z-score logic
+        if (z !== null && z !== undefined) {
+            if (z > -1 && rangeStr.includes('Z-score > -1')) return true;
+            if (z <= -1 && z > -2 && rangeStr.includes('-1 > Z > -2')) return true;
+            if (z <= -2 && rangeStr.includes('Z-score < -2')) return true;
+        } else {
+            // Fallback logic (20% drop)
+            if (status === 'red' && rangeStr.includes('20%')) return true;
+        }
     }
-    if (type === 'srpe') {
-        const load = data.srpe?.load_au ?? 0;
-        if (load >= 600 && rangeStr.includes('>')) return true;
-        if (load >= 400 && load < 600 && rangeStr.includes('400')) return true;
-        if (load < 400 && load > 0 && rangeStr.includes('0')) return true;
+
+    // sRPE 檢查 (以 status 為主，因為有週變化和絕對值兩種條件)
+    else if (type === 'srpe') {
+        const status = data.srpe?.status;
+        if (status === 'red' && rangeStr.includes('> 15%')) return true;
+        if (status === 'yellow' && rangeStr.includes('10%')) return true;
+        if (status === 'green' && rangeStr.includes('< 10%')) return true;
     }
-    if (type === 'honesty') {
-        const score = data.honesty?.honesty_score ?? 0;
-        if (score >= 80 && rangeStr.includes('80')) return true;
-        if (score >= 60 && score < 80 && rangeStr.includes('60')) return true;
-        if (score < 60 && score > 0 && rangeStr.includes('<')) return true;
+
+    // RHR 檢查
+    else if (type === 'rhr') {
+        const diff = data.rhr?.difference ?? 0;
+        if (diff >= 10 && rangeStr.includes('≥ + 10')) return true;
+        if (diff >= 5 && diff < 10 && rangeStr.includes('+ 5')) return true;
+        if (diff < 5 && rangeStr.includes('± 4')) return true;
     }
+
+    // Honesty 檢查
+    else if (type === 'honesty') {
+        return checkHonestyRange(data, rangeStr);
+    }
+    return false;
+}
+
+function checkHonestyRange(data: any, rangeStr: string): boolean {
+    const score = data.honesty?.honesty_score ?? 0;
+    if (score >= 80 && rangeStr.includes('80')) return true;
+    if (score >= 60 && score < 80 && rangeStr.includes('60')) return true;
+    if (score < 60 && score > 0 && rangeStr.includes('<')) return true;
     return false;
 }

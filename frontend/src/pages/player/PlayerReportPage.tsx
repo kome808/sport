@@ -669,19 +669,23 @@ export default function PlayerReportPage() {
                                                 <span>{emoji}</span>
                                                 {label}
                                             </Label>
-                                            <span className="font-bold text-primary text-lg">{wellness[key as keyof typeof wellness]}</span>
+                                            <span className="font-black text-2xl text-slate-800">{wellness[key as keyof typeof wellness]}<span className="text-sm text-slate-400 ml-1">/ 10</span></span>
                                         </div>
                                         <input
                                             type="range"
                                             min="1"
-                                            max="5"
+                                            max="10"
+                                            step="1"
                                             value={wellness[key as keyof typeof wellness]}
                                             onChange={(e) => setWellness({ ...wellness, [key]: parseInt(e.target.value) })}
-                                            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                                            className="w-full h-3 rounded-full appearance-none cursor-pointer accent-white bg-gradient-to-r from-red-500 via-yellow-400 to-emerald-500 hover:opacity-90 transition-opacity"
+                                            style={{
+                                                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                                            }}
                                         />
-                                        <div className="flex justify-between text-xs text-slate-400">
-                                            <span>很差</span>
-                                            <span>很好</span>
+                                        <div className="flex justify-between text-xs text-slate-400 font-bold px-1">
+                                            <span>1 (非常差)</span>
+                                            <span>10 (非常好)</span>
                                         </div>
                                     </div>
                                 ))}
@@ -692,8 +696,8 @@ export default function PlayerReportPage() {
                                         請根據您「目前當下」的真實感受進行評分
                                     </p>
                                     <ul className="list-disc list-inside pl-1 space-y-1 text-xs opacity-80">
-                                        <li><span className="font-bold">1分 (很差)</span>：例如失眠、極度疲勞、壓力極大</li>
-                                        <li><span className="font-bold">5分 (很好)</span>：例如睡眠充足、精神飽滿、心情愉悅</li>
+                                        <li><span className="font-bold">1分 (非常差)</span>：例如整夜失眠、身體極度痠痛、壓力崩潰</li>
+                                        <li><span className="font-bold">10分 (非常好)</span>：例如睡眠完美、身體輕盈、心情極佳</li>
                                     </ul>
                                 </div>
                             </div>

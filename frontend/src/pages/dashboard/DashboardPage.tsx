@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, addDays, subDays, isToday } from 'date-fns';
 import {
     Activity,
     Users,
@@ -16,8 +16,11 @@ import {
     Check,
     Trash2,
     Info,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
     Dialog,
     DialogContent,
@@ -91,10 +94,25 @@ export default function DashboardPage() {
 
     const teamId = team?.id;
 
-    // 展示模式固定日期：2026-01-27
-    const FIXED_DEMO_DATE = '2026-01-27';
-    const isDemo = team?.is_demo || teamSlug === 'shohoku-basketball';
-    const todayStr = isDemo ? FIXED_DEMO_DATE : format(new Date(), 'yyyy-MM-dd');
+    // const FIXED_DEMO_DATE = '2026-01-27'; // Removed
+    // const isDemo = team?.is_demo || teamSlug === 'shohoku-basketball'; // Removed unused variable
+
+    // 日期狀態 (預設今天，湘北 Demo 隊預設 2026-01-27)
+    const [selectedDate, setSelectedDate] = useState<Date>(() => {
+        if (teamSlug === 'shohoku-basketball') {
+            return new Date('2026-01-27T00:00:00');
+        }
+        return new Date();
+    });
+    const todayStr = format(selectedDate, 'yyyy-MM-dd');
+
+    // 切換日期
+    const handleDateChange = (days: number) => {
+        setSelectedDate(prev => {
+            const newDate = days > 0 ? addDays(prev, days) : subDays(prev, Math.abs(days));
+            return newDate;
+        });
+    };
 
     // 取得統計資料 (快取 1 分鐘，避免頻繁請求)
     const { data: stats, isLoading: statsLoading } = useTeamStats(isReady ? teamId : undefined, todayStr);
@@ -285,14 +303,15 @@ export default function DashboardPage() {
 
     // 從疲勞快照中篩選出高風險名單 (比照儀表板頂部的統計邏輯)
     const highRiskList = sortedFatigueData.filter(d =>
+        d.metrics.acwr.risk_level === 'purple' || // 新增紫燈
         d.metrics.acwr.risk_level === 'red' ||
         d.metrics.acwr.risk_level === 'black' ||
-        d.metrics.rhr.risk_level === 'red' ||
-        d.metrics.rhr.risk_level === 'black' ||
-        d.metrics.wellness?.risk_level === 'red' ||
-        d.metrics.wellness?.risk_level === 'black' ||
-        d.metrics.srpe?.risk_level === 'red' ||
-        d.metrics.srpe?.risk_level === 'black'
+        d.metrics.rhr.status === 'red' ||
+        d.metrics.rhr.status === 'black' ||
+        d.metrics.wellness?.status === 'red' ||
+        d.metrics.wellness?.status === 'black' ||
+        d.metrics.srpe?.status === 'red' ||
+        d.metrics.srpe?.status === 'black'
     );
 
     return (
@@ -376,14 +395,15 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         {(sortedFatigueData.filter(d =>
+                            d.metrics.acwr.risk_level === 'purple' ||
                             d.metrics.acwr.risk_level === 'red' ||
                             d.metrics.acwr.risk_level === 'black' ||
-                            d.metrics.rhr.risk_level === 'red' ||
-                            d.metrics.rhr.risk_level === 'black' ||
-                            d.metrics.wellness?.risk_level === 'red' ||
-                            d.metrics.wellness?.risk_level === 'black' ||
-                            d.metrics.srpe?.risk_level === 'red' ||
-                            d.metrics.srpe?.risk_level === 'black'
+                            d.metrics.rhr.status === 'red' ||
+                            d.metrics.rhr.status === 'black' ||
+                            d.metrics.wellness?.status === 'red' ||
+                            d.metrics.wellness?.status === 'black' ||
+                            d.metrics.srpe?.status === 'red' ||
+                            d.metrics.srpe?.status === 'black'
                         ).length)}
                         <p className="text-xs font-medium text-slate-600 mt-1">需要關注</p>
                     </CardContent>
@@ -408,7 +428,7 @@ export default function DashboardPage() {
 
             <div className="grid gap-8 lg:grid-cols-3">
                 {/* 高風險預警列表 */}
-                {highRiskList && highRiskList.length > 0 && (
+                {highRiskList && (
                     <Card className="col-span-full border-red-200 shadow-md bg-white rounded-3xl overflow-hidden border-2 animate-in fade-in slide-in-from-top-4 duration-700">
                         <CardHeader className="border-b border-red-100 bg-red-50/50 py-4">
                             <div className="flex items-center gap-3">
@@ -433,29 +453,29 @@ export default function DashboardPage() {
                                                             <li className="flex gap-2">
                                                                 <Badge className="bg-red-500 h-fit">ACWR</Badge>
                                                                 <div className="text-sm">
-                                                                    <span className="font-black">急慢性負荷比 ACWR &gt; 1.5</span>
-                                                                    <p className="font-medium text-slate-500">代表近期訓練強度激增，受傷風險顯著提高。</p>
+                                                                    <span className="font-black">急慢性負荷比 ≥ 1.5</span>
+                                                                    <p className="font-medium text-slate-500">受傷風險顯著提高。若 ≥ 2.0 為極高風險 (purple)。</p>
                                                                 </div>
                                                             </li>
                                                             <li className="flex gap-2">
                                                                 <Badge className="bg-blue-500 h-fit">sRPE</Badge>
                                                                 <div className="text-sm">
-                                                                    <span className="font-black">今日訓練負荷 sRPE (AU) &gt; 600</span>
-                                                                    <p className="font-medium text-slate-500">單日訓練強度過高，建議追蹤隔日恢復狀態。</p>
+                                                                    <span className="font-black">週負荷變化率 &gt; 15%</span>
+                                                                    <p className="font-medium text-slate-500">短期增量過快。或單週負荷增加 &gt; 1000 AU。</p>
                                                                 </div>
                                                             </li>
                                                             <li className="flex gap-2">
                                                                 <Badge className="bg-orange-500 h-fit">Wellness</Badge>
                                                                 <div className="text-sm">
-                                                                    <span className="font-black">身心狀態 WELLNESS &lt; 12</span>
-                                                                    <p className="font-medium text-slate-500">睡眠、疲勞、壓力等自覺指標過低，代表恢復不足。</p>
+                                                                    <span className="font-black">Z-score &lt; -2</span>
+                                                                    <p className="font-medium text-slate-500">身心狀態顯著低於個人平均 (或總分大幅下滑)。</p>
                                                                 </div>
                                                             </li>
                                                             <li className="flex gap-2">
                                                                 <Badge className="bg-amber-500 h-fit">RHR</Badge>
                                                                 <div className="text-sm">
-                                                                    <span className="font-black">晨間心跳 RHR (Δ &gt; 8)</span>
-                                                                    <p className="font-medium text-slate-500">基準值顯著升高，可能是過度訓練或生病前兆。</p>
+                                                                    <span className="font-black">晨間心跳 RHR (Δ ≥ 10)</span>
+                                                                    <p className="font-medium text-slate-500">生理疲勞嚴重，可能是過度訓練或生病前兆。</p>
                                                                 </div>
                                                             </li>
                                                         </ul>
@@ -480,63 +500,72 @@ export default function DashboardPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-red-50">
-                                        {highRiskList.map((item) => {
-                                            // 找出導致進榜的指標與其數值
-                                            const details = [];
-                                            if (item.metrics.acwr.risk_level === 'red' || item.metrics.acwr.risk_level === 'black') {
-                                                details.push({ name: '急慢性負荷比 ACWR', val: item.metrics.acwr.acwr?.toFixed(2), level: item.metrics.acwr.risk_level });
-                                            }
-                                            if (item.metrics.wellness?.risk_level === 'red' || item.metrics.wellness?.risk_level === 'black') {
-                                                details.push({ name: '身心狀態 WELLNESS', val: `${item.metrics.wellness.total}/25`, level: item.metrics.wellness.risk_level });
-                                            }
-                                            if (item.metrics.rhr.risk_level === 'red' || item.metrics.rhr.risk_level === 'black') {
-                                                const diff = item.metrics.rhr.difference;
-                                                details.push({ name: '晨間心跳 RHR', val: diff && diff > 0 ? `+${diff}` : (diff || 0), level: item.metrics.rhr.risk_level });
-                                            }
-                                            if (item.metrics.srpe?.risk_level === 'red' || item.metrics.srpe?.risk_level === 'black') {
-                                                details.push({ name: '今日訓練負荷 sRPE', val: item.metrics.srpe.load_au || item.metrics.srpe.score, level: item.metrics.srpe.risk_level });
-                                            }
+                                        {highRiskList.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} className="py-8 text-center text-slate-400 font-medium">
+                                                    目前無需要立即關注的高風險球員
+                                                    <p className="text-xs text-slate-300 mt-1">請持續追蹤球員每日回報狀態</p>
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            highRiskList.map((item) => {
+                                                // 找出導致進榜的指標與其數值
+                                                const details = [];
+                                                if (item.metrics.acwr.risk_level === 'red' || item.metrics.acwr.risk_level === 'purple') {
+                                                    details.push({ name: '急慢性負荷比 ACWR', val: item.metrics.acwr.acwr?.toFixed(2), level: item.metrics.acwr.risk_level });
+                                                }
+                                                if (item.metrics.wellness?.status === 'red' || item.metrics.wellness?.status === 'black') {
+                                                    details.push({ name: '身心狀態 WELLNESS', val: `${item.metrics.wellness.total}/50`, level: item.metrics.wellness.status });
+                                                }
+                                                if (item.metrics.rhr.status === 'red' || item.metrics.rhr.status === 'black') {
+                                                    const diff = item.metrics.rhr.difference;
+                                                    details.push({ name: '晨間心跳 RHR', val: diff && diff > 0 ? `+${diff}` : (diff || 0), level: item.metrics.rhr.status });
+                                                }
+                                                if (item.metrics.srpe?.status === 'red' || item.metrics.srpe?.status === 'black') {
+                                                    details.push({ name: '今日訓練負荷 sRPE', val: item.metrics.srpe.load_au || item.metrics.srpe.score, level: item.metrics.srpe.status });
+                                                }
 
-                                            // 風險等級以最嚴重者為準 (遵循現有邏輯，不額外創造等級)
-                                            const highestRisk = details.some(d => d.level === 'black') ? 'black' : 'red';
+                                                // 風險等級以最嚴重者為準
+                                                const highestRisk = details.some(d => d.level === 'black') ? 'black' : 'red';
 
-                                            return (
-                                                <tr key={item.player.id} className="hover:bg-red-50/20 transition-colors">
-                                                    <td className="py-3 px-6 font-bold text-black border-l-4 border-red-500">
-                                                        <Link to={`/${teamSlug}/player/${item.player.short_code || item.player.id}`} className="hover:text-primary hover:underline">
-                                                            {item.player.name}
-                                                        </Link>
-                                                    </td>
-                                                    <td className="py-3 px-6">
-                                                        <Badge className={cn(
-                                                            "font-black uppercase tracking-tighter shadow-sm",
-                                                            highestRisk === 'black' ? "bg-slate-900 text-white" : "bg-red-500 text-white"
-                                                        )}>
-                                                            {highestRisk === 'black' ? '危險 CRITICAL' : '高風險 HIGH'}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="py-3 px-6">
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {details.map((d, idx) => (
-                                                                <div key={idx} className="flex items-center gap-1.5 bg-white border border-red-100 rounded-lg px-2 py-1 shadow-sm">
-                                                                    <span className="text-xs font-black text-red-600">{d.name}</span>
-                                                                    <span className="w-[1px] h-3 bg-red-100" />
-                                                                    <span className="text-sm font-black text-black">{d.val}</span>
-                                                                    {d.level === 'black' && <Badge className="h-4 px-1 text-[8px] bg-slate-900 border-0">CRITICAL</Badge>}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-3 px-6">
-                                                        <Button variant="ghost" size="sm" asChild className="h-8 rounded-xl font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-3">
-                                                            <Link to={`/${teamSlug}/player/${item.player.short_code || item.player.id}`}>
-                                                                細節
+                                                return (
+                                                    <tr key={item.player.id} className="hover:bg-red-50/20 transition-colors">
+                                                        <td className="py-3 px-6 font-bold text-black border-l-4 border-red-500">
+                                                            <Link to={`/${teamSlug}/player/${item.player.short_code || item.player.id}`} className="hover:text-primary hover:underline">
+                                                                {item.player.name}
                                                             </Link>
-                                                        </Button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
+                                                        </td>
+                                                        <td className="py-3 px-6">
+                                                            <Badge className={cn(
+                                                                "font-black uppercase tracking-tighter shadow-sm",
+                                                                highestRisk === 'black' ? "bg-slate-900 text-white" : "bg-red-500 text-white"
+                                                            )}>
+                                                                {highestRisk === 'black' ? '危險 CRITICAL' : '高風險 HIGH'}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="py-3 px-6">
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {details.map((d, idx) => (
+                                                                    <div key={idx} className="flex items-center gap-1.5 bg-white border border-red-100 rounded-lg px-2 py-1 shadow-sm">
+                                                                        <span className="text-xs font-black text-red-600">{d.name}</span>
+                                                                        <span className="w-[1px] h-3 bg-red-100" />
+                                                                        <span className="text-sm font-black text-black">{d.val}</span>
+                                                                        {d.level === 'black' && <Badge className="h-4 px-1 text-[8px] bg-slate-900 border-0">CRITICAL</Badge>}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-3 px-6">
+                                                            <Button variant="ghost" size="sm" asChild className="h-8 rounded-xl font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-3">
+                                                                <Link to={`/${teamSlug}/player/${item.player.short_code || item.player.id}`}>
+                                                                    細節
+                                                                </Link>
+                                                            </Button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -727,7 +756,33 @@ export default function DashboardPage() {
                     <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <h3 className="text-base font-bold text-slate-900">今天球員回饋總覽</h3>
+                                <div className="flex items-center gap-4">
+                                    <h3 className="text-base font-bold text-slate-900">球員回饋總覽</h3>
+                                    <div className="flex items-center gap-2">
+                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDateChange(-1)}>
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </Button>
+                                        <div className="relative">
+                                            <Input
+                                                type="date"
+                                                className="h-8 w-[140px] px-2 text-sm"
+                                                value={todayStr}
+                                                onChange={(e) => {
+                                                    if (e.target.value) setSelectedDate(new Date(e.target.value));
+                                                }}
+                                            />
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() => handleDateChange(1)}
+                                            disabled={isToday(selectedDate)}
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </CardHeader>
@@ -738,9 +793,143 @@ export default function DashboardPage() {
                                     <tr>
                                         <th className="py-4 px-6 whitespace-nowrap min-w-[120px]">球員姓名</th>
                                         <th className="py-4 px-6 text-center whitespace-nowrap w-[60px]">狀態</th>
-                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[10%]">晨間心跳</th>
-                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[15%]">身心狀態</th>
-                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[10%]">訓練負荷</th>
+                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[10%]">
+                                            <div className="flex items-center justify-center gap-1">
+                                                晨間心跳
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <Info className="h-4 w-4 text-slate-400 cursor-pointer hover:text-primary transition-colors" />
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                                                        <DialogHeader>
+                                                            <DialogTitle className="flex items-center gap-2 text-xl font-black">
+                                                                <Activity className="h-5 w-5 text-red-500" />
+                                                                身體內部的氣象台 (RHR)
+                                                            </DialogTitle>
+                                                        </DialogHeader>
+                                                        <div className="space-y-4">
+                                                            <p className="font-bold text-slate-700 leading-relaxed text-sm">
+                                                                靜止心率 (Resting Heart Rate) 是反映自律神經系統與恢復狀態最直接的生理指標。
+                                                                我們建議您每天早上起床、下床前測量 1 分鐘心跳。
+                                                            </p>
+
+                                                            <div className="space-y-3">
+                                                                <h4 className="font-black text-slate-900 border-b pb-1">🚦 如何解讀？</h4>
+                                                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3">
+                                                                    <div className="flex gap-3">
+                                                                        <span className="w-3 h-3 mt-1.5 rounded-full bg-green-500 shrink-0" />
+                                                                        <div>
+                                                                            <span className="text-sm font-black text-slate-800 block">綠燈 (恢復良好)</span>
+                                                                            <span className="text-xs text-slate-600">與過去 7 天平均值持平或更低。</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex gap-3">
+                                                                        <span className="w-3 h-3 mt-1.5 rounded-full bg-yellow-400 shrink-0" />
+                                                                        <div>
+                                                                            <span className="text-sm font-black text-slate-800 block">黃燈 (承受壓力)</span>
+                                                                            <span className="text-xs text-slate-600">比平均值高出 <span className="font-bold text-slate-900">5-9 下</span>，身體正在承受壓力。</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex gap-3">
+                                                                        <span className="w-3 h-3 mt-1.5 rounded-full bg-red-500 shrink-0" />
+                                                                        <div>
+                                                                            <span className="text-sm font-black text-slate-800 block">紅燈 (建議休息)</span>
+                                                                            <span className="text-xs text-slate-600">比平均值高出 <span className="font-bold text-slate-900">10 下以上</span>，強烈建議當日休息或就醫。</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                        </th>
+                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[15%]">
+                                            <div className="flex items-center justify-center gap-1">
+                                                身心狀態
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <Info className="h-4 w-4 text-slate-400 cursor-pointer hover:text-primary transition-colors" />
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                                                        <DialogHeader>
+                                                            <DialogTitle className="flex items-center gap-2 text-xl font-black">
+                                                                <Database className="h-5 w-5 text-blue-500" />
+                                                                聽見身體的聲音 (Wellness)
+                                                            </DialogTitle>
+                                                        </DialogHeader>
+                                                        <div className="space-y-4">
+                                                            <p className="font-bold text-slate-700 leading-relaxed text-sm">
+                                                                透過簡單問卷，紀錄選手對「疲勞感」、「睡眠品質」、「肌肉痠痛」與「壓力」的主觀感受。
+                                                                這聽起來很簡單，但科學證明它比你想像的更準確。
+                                                            </p>
+
+                                                            <div className="space-y-3">
+                                                                <h4 className="font-black text-slate-900 border-b pb-1">🚦 如何解讀？</h4>
+                                                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3">
+                                                                    <div className="flex gap-3">
+                                                                        <span className="w-3 h-3 mt-1.5 rounded-full bg-green-500 shrink-0" />
+                                                                        <div>
+                                                                            <span className="text-sm font-black text-slate-800 block">綠燈 (身心平衡)</span>
+                                                                            <span className="text-xs text-slate-600">分數平穩，身心處於理想狀態。</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex gap-3">
+                                                                        <span className="w-3 h-3 mt-1.5 rounded-full bg-red-500 shrink-0" />
+                                                                        <div>
+                                                                            <span className="text-sm font-black text-slate-800 block">紅燈 (狀態低落)</span>
+                                                                            <span className="text-xs text-slate-600">總分顯著低於個人平常水準，需注意是否有生活壓力過大或睡眠不足。</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                        </th>
+                                        <th className="py-4 px-6 text-center whitespace-nowrap w-[10%]">
+                                            <div className="flex items-center justify-center gap-1">
+                                                訓練負荷
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <Info className="h-4 w-4 text-slate-400 cursor-pointer hover:text-primary transition-colors" />
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                                                        <DialogHeader>
+                                                            <DialogTitle className="flex items-center gap-2 text-xl font-black">
+                                                                <TrendingUp className="h-5 w-5 text-amber-500" />
+                                                                量化你的努力 (sRPE)
+                                                            </DialogTitle>
+                                                        </DialogHeader>
+                                                        <div className="space-y-4">
+                                                            <p className="font-bold text-slate-700 leading-relaxed text-sm">
+                                                                將選手感覺到的「訓練辛苦程度 (0-10分)」乘以「訓練時間」所計算出的數值。
+                                                                這是國際通用的黃金標準，用來量化身體實際承受了多少壓力。
+                                                            </p>
+
+                                                            <div className="space-y-3">
+                                                                <h4 className="font-black text-slate-900 border-b pb-1">🚦 如何解讀？</h4>
+                                                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+                                                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                                                        我們主要觀察<span className="font-black text-slate-800">「波動」</span>。訓練量應該像階梯一樣循序漸進，而不是像雲霄飛車忽高忽低。
+                                                                    </p>
+                                                                    <div className="bg-white p-2 rounded border border-slate-200 mt-2">
+                                                                        <div className="flex items-center gap-2 text-red-600">
+                                                                            <AlertTriangle className="h-4 w-4" />
+                                                                            <span className="text-xs font-black">高風險訊號</span>
+                                                                        </div>
+                                                                        <p className="text-xs text-slate-700 mt-1 pl-6">
+                                                                            若本週訓練總量比上週暴增 <span className="font-black">超過 15%</span>。
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                        </th>
                                         <th className="py-4 px-6 whitespace-nowrap w-[25%]">心得回饋</th>
                                         <th className="py-4 px-6 whitespace-nowrap w-[20%]">傷病/生病回報</th>
                                         <th className="py-4 px-6 text-center whitespace-nowrap w-[5%]">動作</th>
@@ -756,6 +945,7 @@ export default function DashboardPage() {
                                             const getRiskBg = (level: string | undefined) => {
                                                 switch (level) {
                                                     case 'black': return 'bg-slate-900';
+                                                    case 'purple': return 'bg-purple-500';
                                                     case 'red': return 'bg-red-500';
                                                     case 'yellow': return 'bg-amber-400';
                                                     case 'green': return 'bg-green-400';
@@ -766,15 +956,22 @@ export default function DashboardPage() {
                                             return (
                                                 <tr key={data.player.id} className="hover:bg-slate-50/50 transition-colors">
                                                     <td className="py-4 px-6">
-                                                        <span className="font-bold text-black text-sm">{data.player.name}</span>
+                                                        <Link
+                                                            to={`/${teamSlug}/player/${data.player.id}/fatigue`}
+                                                            className="font-bold text-black text-sm hover:text-primary hover:underline transition-all"
+                                                        >
+                                                            {data.player.name}
+                                                        </Link>
                                                     </td>
                                                     <td className="py-4 px-6 text-center">
                                                         <div className="flex justify-center">
                                                             <div className={cn(
                                                                 "h-3 w-3 rounded-full shadow-inner",
-                                                                getRiskBg(data.metrics.acwr.risk_level === 'black' || data.metrics.wellness?.risk_level === 'black' ? 'black' :
-                                                                    (data.metrics.acwr.risk_level === 'red' || data.metrics.wellness?.risk_level === 'red' ? 'red' :
-                                                                        (data.metrics.acwr.risk_level === 'yellow' || data.metrics.wellness?.risk_level === 'yellow' ? 'yellow' : 'green')))
+                                                                getRiskBg(
+                                                                    (data.metrics.acwr.risk_level === 'purple' || data.metrics.acwr.risk_level === 'black' || data.metrics.wellness?.status === 'black') ? 'purple' :
+                                                                        (data.metrics.acwr.risk_level === 'red' || data.metrics.wellness?.status === 'red') ? 'red' :
+                                                                            (data.metrics.acwr.risk_level === 'yellow' || data.metrics.wellness?.status === 'yellow') ? 'yellow' : 'green'
+                                                                )
                                                             )} />
                                                         </div>
                                                     </td>
@@ -803,7 +1000,7 @@ export default function DashboardPage() {
                                                                             <span className="text-[10px] font-bold text-slate-400">{item.label}</span>
                                                                             <div className={cn(
                                                                                 "w-6 h-6 rounded-md flex items-center justify-center text-xs font-black border",
-                                                                                item.v! >= 4 ? "bg-green-100 text-green-800 border-green-200" : (item.v! >= 3 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-red-100 text-red-800 border-red-200")
+                                                                                item.v! >= 8 ? "bg-green-100 text-green-800 border-green-200" : (item.v! >= 5 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-red-100 text-red-800 border-red-200")
                                                                             )}>
                                                                                 {item.v}
                                                                             </div>
@@ -811,7 +1008,7 @@ export default function DashboardPage() {
                                                                     ))}
                                                                 </div>
                                                                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-full">
-                                                                    總分: {record.wellness_total}/25
+                                                                    總分: {record.wellness_total}/50
                                                                 </span>
                                                             </div>
                                                         ) : (
