@@ -22,6 +22,14 @@ export function Header() {
 
                     {/* Navigation */}
                     <div className="flex items-center gap-3 lg:gap-4">
+                        <Link to="/science" className="hidden lg:block">
+                            <Button
+                                variant="ghost"
+                                className="text-white hover:text-[#c1ff00] hover:bg-white/5 font-bold tracking-wide"
+                            >
+                                關於運動訓練負荷管理
+                            </Button>
+                        </Link>
                         <Link to="/login">
                             <Button
                                 variant="ghost"

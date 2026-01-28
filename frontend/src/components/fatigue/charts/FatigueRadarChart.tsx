@@ -46,24 +46,34 @@ export function FatigueRadarChart({ data }: FatigueRadarChartProps) {
                 data={chartData}
                 keys={['value']}
                 indexBy="metric"
-                maxValue={5}
+                maxValue={10}
                 valueFormat=">-.2f"
-                margin={{ top: 25, right: 35, bottom: 25, left: 35 }}
+                margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
                 borderColor={{ from: 'color' }}
-                gridLabelOffset={16} // 標籤距離
-                dotSize={10}
+                gridLabelOffset={6} // 進一步減少標籤距離
+                dotSize={8}
                 dotColor={{ theme: 'background' }}
                 dotBorderWidth={2}
+                enableDotLabel={true}
+                dotLabel="value"
+                dotLabelYOffset={-10}
                 colors={{ scheme: 'nivo' }} // 或自訂顏色
                 blendMode="multiply"
                 motionConfig="wobbly"
                 theme={{
+                    dots: {
+                        text: {
+                            fontSize: 10,
+                            fontWeight: 900,
+                            fill: '#334155'
+                        }
+                    },
                     axis: {
                         ticks: {
                             text: {
-                                fontSize: 11,
-                                fill: '#000000', // 標籤顏色改為黑色
-                                fontWeight: 900  // 增加字重
+                                fontSize: 10,
+                                fill: '#1e293b', // 改為深灰色 Slate-800
+                                fontWeight: 800
                             }
                         }
                     },

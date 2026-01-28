@@ -25,6 +25,7 @@ import TeamSettingsPage from './pages/team/TeamSettingsPage';
 import TeamLoginPage from './pages/team/TeamLoginPage';
 import CoachInvitationPage from './pages/team/CoachInvitationPage';
 import TutorialPage from './pages/team/TutorialPage';
+import ScienceGuidePage from './pages/public/ScienceGuidePage';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
@@ -97,6 +98,10 @@ const router = createBrowserRouter(
       {
         path: '/register',
         element: <RegisterPage />,
+      },
+      {
+        path: '/science',
+        element: <ScienceGuidePage />,
       },
       {
         path: '/forgot-password',

@@ -23,7 +23,7 @@ export function PainPoints() {
     ];
 
     return (
-        <section className="py-20 lg:py-32 bg-zinc-950 relative overflow-hidden ring-1 ring-white/5">
+        <section className="py-16 lg:py-24 bg-zinc-950 relative overflow-hidden ring-1 ring-white/5">
             {/* Background Diagonal */}
             <div className="absolute inset-0 bg-gradient-to-br from-[#c1ff00]/5 to-transparent"></div>
 
@@ -47,7 +47,7 @@ export function PainPoints() {
                     </h2>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid md:grid-cols-3 gap-8 mb-20">
                     {painPoints.map((point, index) => {
                         const Icon = point.icon;
 
@@ -79,6 +79,24 @@ export function PainPoints() {
                             </div>
                         );
                     })}
+                </div>
+
+                {/* Video Section */}
+                <div className="max-w-4xl mx-auto">
+                    <div className="relative aspect-video shadow-2xl ring-1 ring-white/10 overflow-hidden group">
+                        <div className="absolute inset-0 bg-[#c1ff00]/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"></div>
+                        <iframe
+                            className="absolute inset-0 w-full h-full"
+                            src="https://www.youtube.com/embed/WXlpdDyGOJ8"
+                            title="Training Load Management Video"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                        ></iframe>
+                        {/* Decorative corners */}
+                        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#c1ff00] z-20 pointer-events-none"></div>
+                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#c1ff00] z-20 pointer-events-none"></div>
+                    </div>
                 </div>
             </div>
         </section>

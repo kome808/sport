@@ -52,7 +52,7 @@ export default function TutorialPage() {
 
                 {/* 球員端教學 */}
                 <TabsContent value="player" className="space-y-6 mt-6">
-                    <PlayerTutorial team={team} teamSlug={teamSlug} />
+                    <PlayerTutorial />
                 </TabsContent>
 
                 {/* 常見問答 */}
@@ -220,7 +220,7 @@ function CoachTutorial({ team, teamSlug }: { team: any; teamSlug?: string }) {
 }
 
 // 球員端教學組件
-function PlayerTutorial({ team, teamSlug }: { team: any; teamSlug?: string }) {
+function PlayerTutorial() {
     return (
         <>
             {/* 球員登入流程 */}

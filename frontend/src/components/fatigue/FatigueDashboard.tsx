@@ -134,13 +134,13 @@ export default function FatigueDashboard({
                     centerValue={true}
                     className="h-full"
                 >
-                    <div className="relative w-full h-full flex items-center justify-center min-h-[260px] max-h-[320px]">
+                    <div className="relative w-full h-full flex items-center justify-center min-h-[260px] max-h-[300px] py-1">
                         {metrics.wellness && metrics.wellness.items ? (
-                            <div className="relative w-full h-full max-w-[340px] max-h-[340px] flex items-center justify-center">
+                            <div className="relative w-full h-full max-w-[320px] max-h-[320px] flex items-center justify-center">
                                 {/* Score Overlay in Middle of Radar */}
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center pointer-events-none w-16 h-16 rounded-full bg-white/40 backdrop-blur-md shadow-lg border-2 border-white/60">
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center pointer-events-none w-14 h-14 rounded-full bg-white/60 backdrop-blur-md shadow-lg border-2 border-white/80">
                                     <span className={cn(
-                                        "text-4xl font-black tracking-tighter leading-none",
+                                        "text-2xl font-black tracking-tighter leading-none",
                                         metrics.wellness.status === 'gray' ? "text-slate-400" :
                                             metrics.wellness.status === 'black' ? "text-white" :
                                                 (metrics.wellness.z_score !== null && metrics.wellness.z_score < -2) ? "text-status-high-dark" :
