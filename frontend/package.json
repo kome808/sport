@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:admin": "vite --port 3001 --mode admin",
     "build": "tsc -b && vite build",
-    "build:admin": "echo \"VITE_APP_MODE=admin\" > .env.local && echo \"VITE_SUPABASE_URL=$VITE_SUPABASE_URL\" >> .env.local && echo \"VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY\" >> .env.local && tsc -b && vite build --mode admin",
+    "build:admin": "tsc -b && vite build --mode admin",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
