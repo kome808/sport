@@ -45,7 +45,16 @@ const queryClient = new QueryClient({
 });
 
 // 判斷是否為 Admin 模式
-const isAdminMode = import.meta.env.VITE_APP_MODE === 'admin' || window.location.hostname.startsWith('admin.');
+const isAdminMode = import.meta.env.VITE_APP_MODE === 'admin' ||
+  window.location.hostname.startsWith('admin.') ||
+  window.location.port === '3001';
+
+console.log('[App] Auth Check:', {
+  isAdminMode,
+  hostname: window.location.hostname,
+  port: window.location.port,
+  mode: import.meta.env.VITE_APP_MODE
+});
 
 // 路由設定
 const router = createBrowserRouter(
@@ -81,10 +90,10 @@ const router = createBrowserRouter(
       // 捕捉所有未定義路由導回首頁
       {
         path: '*',
-        element: <AdminLayout />, // 使用 Layout 包裹以提供導航
+        element: <AdminLayout />,
         children: [
           {
-            path: '*',
+            index: true,
             element: <AdminDashboardPage />,
           }
         ]
