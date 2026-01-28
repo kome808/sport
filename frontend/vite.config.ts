@@ -6,15 +6,18 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  // 載入當前模式的環境變數，並且也載入 process.env (第三個參數 '' 代表載入所有變數)
+  // 載入當前模式 (以及 process.env)
   const env = loadEnv(mode, process.cwd(), '');
+
+  // 雙重保險：Vercel 有時將變數直接放在 process.env
+  const finalSupabaseUrl = env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const finalSupabaseKey = env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
   return {
     plugins: [react(), tailwindcss()],
     define: {
-      // 強制注入 Vercel 系統變數，防止在此模式下遺失
-      'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
-      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
+      'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(finalSupabaseUrl),
+      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(finalSupabaseKey),
     },
     resolve: {
       alias: {
