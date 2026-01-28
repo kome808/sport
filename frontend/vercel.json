@@ -1,7 +1,11 @@
 {
     "rewrites": [
         {
-            "source": "/((?!assets/|.*\\..*).*)",
+            "source": "/assets/(.*)",
+            "destination": "/assets/$1"
+        },
+        {
+            "source": "/((?!api|assets|favicon.ico|_next).*)",
             "destination": "/index.html"
         }
     ]
