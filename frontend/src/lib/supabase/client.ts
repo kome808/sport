@@ -30,16 +30,15 @@ const getSupabaseConfig = () => {
         }
     }
 
-    // 最終防線：回傳一個「格式正確但內容錯誤」的 URL，這會讓 createClient 通過，但讓我們能看到報錯
-    const errorUrl = 'https://error-check-env-vars.supabase.co';
-    console.error('[SupabaseConfig] CRITICAL: Missing or invalid VITE_SUPABASE_URL!', {
-        receivedUrl: envUrl,
-        receivedKey: !!envKey
+    // 最終防線
+    console.error('[SupabaseConfig] Critical: Environment variables missing even after local fallback check.', {
+        envUrl: !!envUrl,
+        envKey: !!envKey
     });
 
     return {
-        url: errorUrl,
-        key: envKey || 'missing-key',
+        url: envUrl || '',
+        key: envKey || '',
     };
 };
 
