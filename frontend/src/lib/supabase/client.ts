@@ -11,22 +11,28 @@ const getSupabaseConfig = () => {
     const envUrl = import.meta.env.VITE_SUPABASE_URL;
     const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-    if (envUrl && envKey) {
+    console.log('[SupabaseConfig] Environment variables:', {
+        urlFound: !!envUrl,
+        keyFound: !!envKey,
+    });
+
+    if (envUrl && envKey && envUrl !== 'https://your-project.supabase.co') {
         return { url: envUrl, key: envKey };
     }
 
     // 備用：從 localStorage 讀取（預覽環境）
-    const localUrl = localStorage.getItem('supabase_url');
-    const localKey = localStorage.getItem('supabase_anon_key');
-
-    if (localUrl && localKey) {
-        return { url: localUrl, key: localKey };
+    if (typeof window !== 'undefined') {
+        const localUrl = localStorage.getItem('supabase_url');
+        const localKey = localStorage.getItem('supabase_anon_key');
+        if (localUrl && localKey) {
+            return { url: localUrl, key: localKey };
+        }
     }
 
-    // 開發環境預設值（請替換為實際值）
+    // 最後的防線：如果都沒設定，不要回傳會崩潰的網址，讓它噴出更清楚的說明
     return {
-        url: 'https://your-project.supabase.co',
-        key: 'your-anon-key',
+        url: envUrl || 'https://placeholder-url-please-check-env.supabase.co',
+        key: envKey || 'placeholder-key',
     };
 };
 
