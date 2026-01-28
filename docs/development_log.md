@@ -14,8 +14,9 @@
 | **2026-01-14** | **人體地圖自定義與 UI 修復** | 1. 實作客製化 SVG 人體地圖 (支援關節、肌肉獨立點擊)<br>2. 整合 `Shadcn/UI` Tooltip 顯示中文部位名稱<br>3. 修復全域 Popover/Dropdown 背景透明問題<br>4. 優化 `PainReportForm` 選擇邏輯 | 完成 | 2.5 hr |
 | **2026-01-14** | **球員端與教練端功能同步 (已完成)** | 1. 實作球員登入大廳 (`/:teamSlug/login`) <br>2. 修復認領邏輯 (解決教練建立球員後消失的問題)<br>3. 實作個人資料編輯 (位置、身高、體重、密碼修改)<br>4. 教練端 URL 統一優先使用短代碼 (Short Code) | 完成 | 3.0 hr |
 | **2026-01-15** | **人體地圖高保真重構** | 1. 成功提取並移植 `react-body-highlighter` 的 SVG 數據<br>2. 實作基於 Polygons 的高解析度身體地圖<br>3. 支援左右對稱部位自動識別與點擊<br>4. 自動化測試驗證瀏覽器互動 | 完成 | 2.0 hr |
-| **2026-01-15** | **球員訓練負荷監測 (規劃)** | 1. 制定 5 大指標 (ACWR, PSI, RHR, Wellness, sRPE) 架構<br>2. 設計後端 PostgreSQL RPC 計算邏輯 (EWMA)<br>3. 規劃前端 FatigueDashboard 元件與 Layout 重構 | 規劃中 | - |
+| **2026-01-15** | **球員訓練負荷監測 (規劃)** | 1. 制定 5 大指標 (ACWR, PSI, RHR, Wellness, sRPE) 架構<br>2. 設計後端 PostgreSQL RPC 計算邏輯 (EWMA)<br>3. 規劃前端 FatigueDashboard 元件與 Layout 重構 | 完成 | 2.0 hr |
+| **2026-01-28** | **圖表優化與 Vercel 建置修復** | 1. 疲勞監測雷達圖同步 10 分制，新增數值標籤並解決溢出問題<br>2. 修復 `TutorialPage.tsx` 的 TS6198 錯誤，恢復 Vercel 正常部署<br>3. 優化邀請頁面 UI (顯示中文隊名、統一佈局與文案修改) | 完成 | 2.5 hr |
 
 
 ## 累計開發時間
-**總計**: 36.0 小時
+**總計**: 40.5 小時
