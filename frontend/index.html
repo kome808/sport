@@ -23,6 +23,20 @@
 
 <body>
   <div id="root"></div>
+  <script>
+    window.onerror = function (msg, url, lineNo, columnNo, error) {
+      var node = document.createElement('div');
+      node.style.color = 'red';
+      node.style.padding = '20px';
+      node.style.background = 'white';
+      node.style.position = 'fixed';
+      node.style.top = '0';
+      node.style.zIndex = '9999';
+      node.innerHTML = '啟動錯誤: ' + msg + '<br>檔案: ' + url + ' L' + lineNo;
+      document.body.appendChild(node);
+      return false;
+    };
+  </script>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 
