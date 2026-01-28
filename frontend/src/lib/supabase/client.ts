@@ -11,28 +11,35 @@ const getSupabaseConfig = () => {
     const envUrl = import.meta.env.VITE_SUPABASE_URL;
     const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-    console.log('[SupabaseConfig] Environment variables:', {
-        urlFound: !!envUrl,
-        keyFound: !!envKey,
-    });
+    // 檢查變數內容是真正的 URL 還是字串形式的 "undefined"
+    const isValidUrl = (url: string | undefined): url is string => {
+        if (!url) return false;
+        return url.startsWith('http://') || url.startsWith('https://');
+    };
 
-    if (envUrl && envKey && envUrl !== 'https://your-project.supabase.co') {
+    if (isValidUrl(envUrl) && envKey) {
         return { url: envUrl, key: envKey };
     }
 
-    // 備用：從 localStorage 讀取（預覽環境）
+    // 備用：從 localStorage 讀取
     if (typeof window !== 'undefined') {
-        const localUrl = localStorage.getItem('supabase_url');
-        const localKey = localStorage.getItem('supabase_anon_key');
-        if (localUrl && localKey) {
-            return { url: localUrl, key: localKey };
+        const localUrl = localStorage.getItem('supabase_url') || undefined;
+        const localKey = localStorage.getItem('supabase_anon_key') || undefined;
+        if (isValidUrl(localUrl) && localKey) {
+            return { url: localUrl!, key: localKey };
         }
     }
 
-    // 最後的防線：如果都沒設定，不要回傳會崩潰的網址，讓它噴出更清楚的說明
+    // 最終防線：回傳一個「格式正確但內容錯誤」的 URL，這會讓 createClient 通過，但讓我們能看到報錯
+    const errorUrl = 'https://error-check-env-vars.supabase.co';
+    console.error('[SupabaseConfig] CRITICAL: Missing or invalid VITE_SUPABASE_URL!', {
+        receivedUrl: envUrl,
+        receivedKey: !!envKey
+    });
+
     return {
-        url: envUrl || 'https://placeholder-url-please-check-env.supabase.co',
-        key: envKey || 'placeholder-key',
+        url: errorUrl,
+        key: envKey || 'missing-key',
     };
 };
 
