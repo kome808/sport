@@ -41,9 +41,7 @@ export const getSupabaseClient = (): SupabaseClient => {
     if (!supabaseInstance) {
         const config = getSupabaseConfig();
         // 動態決定 Storage Key，避免 3000 與 3001 互相鎖死 (Lock Contention)
-        const isBrowser = typeof window !== 'undefined';
-        const port = isBrowser ? window.location.port : '';
-        const storageKey = port === '3001' ? 'sb-admin-auth-token' : 'sb-auth-token';
+        const storageKey = import.meta.env.VITE_APP_MODE === 'admin' ? 'sb-admin-auth-token' : 'sb-auth-token';
 
         supabaseInstance = createClient(config.url, config.key, {
             auth: {

@@ -57,7 +57,7 @@ export function Footer() {
                                         <span className="text-base font-bold">關於本站</span>
                                     </button>
                                 </DialogTrigger>
-                                <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-4xl overflow-y-auto">
+                                <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-4xl overflow-y-auto [&>button]:top-10 sm:[&>button]:top-4 [&>button]:right-6 sm:[&>button]:right-4 [&>button_svg]:size-6 sm:[&>button_svg]:size-4">
                                     <DialogHeader>
                                         <DialogTitle className="text-[#c1ff00] font-black text-2xl uppercase tracking-tighter mb-4">
                                             關於 SPORT<span className="text-white">REPO</span>

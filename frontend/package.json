@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:admin": "vite --port 3001 --mode admin",
     "build": "tsc -b && vite build",
+    "build:admin": "tsc -b && vite build --mode admin",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",

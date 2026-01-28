@@ -9,7 +9,8 @@ import { supabase, SCHEMA_NAME } from '@/lib/supabase';
 import type { Coach } from '@/types';
 
 // 判斷當前環境的 Storage Key
-const STORAGE_KEY = window.location.port === '3001' ? 'sb-admin-auth-token' : 'sb-auth-token';
+// 判斷當前環境的 Storage Key (區分管理員與一般模式)
+const STORAGE_KEY = import.meta.env.VITE_APP_MODE === 'admin' ? 'sb-admin-auth-token' : 'sb-auth-token';
 
 interface AuthState {
     user: User | null;

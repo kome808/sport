@@ -89,7 +89,7 @@ export default function DashboardLayout() {
     const [dialogMode, setDialogMode] = useState<ProfileDialogMode>('profile');
 
     // 使用 useAuth 提供的 user 資料，不再需要手動 fetch
-    const userName = isAnonymous ? '演示訪客' : (user?.user_metadata?.full_name || user?.email?.split('@')[0] || '教練');
+    const userName = isAnonymous ? '展示訪客' : (user?.user_metadata?.full_name || user?.email?.split('@')[0] || '教練');
 
     // 登出處理
     const handleLogout = async () => {
@@ -351,15 +351,7 @@ export default function DashboardLayout() {
                                         <span>修改姓名</span>
                                     </DropdownMenuItem>
 
-                                    <DropdownMenuItem onClick={() => openProfileDialog('email')} className="cursor-pointer">
-                                        <Bell className="mr-2 h-4 w-4" /> {/* Reuse Bell icon temporarily or import Mail */}
-                                        <span>更換 Email</span>
-                                    </DropdownMenuItem>
 
-                                    <DropdownMenuItem onClick={() => openProfileDialog('password')} className="cursor-pointer">
-                                        <Settings className="mr-2 h-4 w-4" /> {/* Reuse Settings icon or import Lock */}
-                                        <span>修改密碼</span>
-                                    </DropdownMenuItem>
 
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 cursor-pointer">

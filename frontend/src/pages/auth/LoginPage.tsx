@@ -98,7 +98,7 @@ export default function LoginPage() {
                                             disabled={isLoading}
                                             className="w-full h-16 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xl shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]"
                                         >
-                                            {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : '立即開始演示'}
+                                            {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : '立即開始展示'}
                                         </Button>
                                     </div>
                                 </div>

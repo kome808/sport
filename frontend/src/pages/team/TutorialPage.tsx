@@ -399,7 +399,7 @@ function FAQSection() {
                             儀表板上的「風險名單」是什麼？
                         </AccordionTrigger>
                         <AccordionContent className="text-black font-medium">
-                            系統會根據球員的訓練負荷數據（ACWR、PSI 等指標）自動計算受傷風險。當指標超過安全範圍時，球員會被標示為「高風險」，建議教練調整其訓練強度。
+                            系統自動偵測指出「晨間心跳 RHR」、「身心狀態 WELLNESS」、「今日訓練負荷 sRPE」或「急慢性負荷比 ACWR」中任一指標異常的球員
                         </AccordionContent>
                     </AccordionItem>
 
@@ -408,7 +408,7 @@ function FAQSection() {
                             球員可以修改已提交的回報嗎？
                         </AccordionTrigger>
                         <AccordionContent className="text-black font-medium">
-                            目前系統不支援修改已提交的回報。如需更正資料，請聯繫教練協助處理。
+                            當天與前一天都可以再次填寫送出
                         </AccordionContent>
                     </AccordionItem>
 

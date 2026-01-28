@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Zap, Shield, TrendingUp, PlayCircle } from "lucide-react";
+import { Zap, Shield, TrendingUp } from "lucide-react";
 
 interface HeroProps {
     heroImage: string;
@@ -83,29 +83,39 @@ export function Hero({ heroImage }: HeroProps) {
                     </div>
 
                     {/* CTA Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="text-white font-black text-lg mb-2 sm:mb-0 sm:mr-4 flex items-center uppercase tracking-widest">
+                    <div className="flex flex-col lg:flex-row gap-4 lg:items-center">
+                        <div className="text-white font-black text-lg mb-2 lg:mb-0 lg:mr-4 flex items-center uppercase tracking-widest shrink-0">
                             系統展示：
                         </div>
-                        <Link to="/login?demo=coach" className="sm:w-auto" target="_blank" rel="noopener noreferrer">
-                            <Button
-                                size="lg"
-                                variant="outline"
-                                className="w-full sm:w-auto border-2 border-[#c1ff00] text-[#c1ff00] hover:bg-[#c1ff00] hover:text-black font-black text-xl px-12 py-8 uppercase tracking-widest transition-all"
-                            >
-                                <PlayCircle className="mr-3 w-6 h-6" />
-                                教練端
-                            </Button>
-                        </Link>
-                        <Link to="/shohoku-basketball/p/3ss/login" className="sm:w-auto" target="_blank" rel="noopener noreferrer">
-                            <Button
-                                size="lg"
-                                variant="outline"
-                                className="w-full sm:w-auto border-2 border-[#c1ff00] text-[#c1ff00] hover:bg-[#c1ff00] hover:text-black font-black text-xl px-12 py-8 uppercase tracking-widest transition-all"
-                            >
-                                選手端
-                            </Button>
-                        </Link>
+                        <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
+                            <Link to="/login?demo=coach" className="w-full md:w-auto" target="_blank" rel="noopener noreferrer">
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="w-full md:w-auto border-2 border-[#c1ff00] text-[#c1ff00] hover:bg-[#c1ff00] hover:text-black font-black text-xl px-12 py-8 uppercase tracking-widest transition-all"
+                                >
+                                    教練端
+                                </Button>
+                            </Link>
+                            <Link to="/shohoku-basketball/p/3ss/login" className="w-full md:w-auto" target="_blank" rel="noopener noreferrer">
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="w-full md:w-auto border-2 border-[#c1ff00] text-[#c1ff00] hover:bg-[#c1ff00] hover:text-black font-black text-xl px-12 py-8 uppercase tracking-widest transition-all"
+                                >
+                                    選手端
+                                </Button>
+                            </Link>
+                            <Link to="/science" className="w-full md:w-auto" target="_self">
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="w-full md:w-auto border-2 border-[#c1ff00] text-[#c1ff00] hover:bg-[#c1ff00] hover:text-black font-black text-xl px-12 py-8 uppercase tracking-widest transition-all"
+                                >
+                                    運動訓練負荷管理
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>

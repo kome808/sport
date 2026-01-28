@@ -76,7 +76,7 @@ export default function PlayerLoginPage() {
             navigate(`/${teamSlug}/p/${urlCode}`);
         } catch (err: any) {
             console.error(err);
-            setError(err.message || '演示登入失敗');
+            setError(err.message || '展示登入失敗');
         } finally {
             setIsDemoLoading(false);
         }

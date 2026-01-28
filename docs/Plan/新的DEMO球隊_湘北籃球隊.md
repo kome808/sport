@@ -1,6 +1,6 @@
 # 新增 DEMO 球隊：湘北籃球隊 & 網域規劃
 
-## 1. 系統演示架構規劃
+## 1. 系統展示架構規劃
 
 ### 網域策略
 使用者希望將 DEMO 放在 `demo.sportrepo.com` 以避免與正式環境 `app.sportrepo.com` (或主網域) 發生 Session 衝突。
