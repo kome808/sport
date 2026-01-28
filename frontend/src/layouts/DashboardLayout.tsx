@@ -7,7 +7,6 @@ import { Outlet, Link, useParams, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     Users,
-    Bell,
     Settings,
     LogOut,
     Menu,
