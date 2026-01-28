@@ -60,7 +60,6 @@ console.log('[App] Auth Check:', {
 const router = createBrowserRouter(
   isAdminMode
     ? [
-      // Admin 模式路由
       {
         path: '/login',
         element: <AdminLoginPage />,
@@ -85,11 +84,14 @@ const router = createBrowserRouter(
             path: 'teams',
             element: <AdminTeamManagementPage />,
           },
+          {
+            path: '*', // 內層捕捉
+            element: <AdminDashboardPage />,
+          }
         ],
       },
-      // 捕捉所有未定義路由導回首頁
       {
-        path: '*',
+        path: '*', // 外層捕捉
         element: <AdminLayout />,
         children: [
           {
