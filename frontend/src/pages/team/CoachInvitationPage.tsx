@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTeam } from '@/hooks/useTeam';
 
 // Step 1: Code Validation
 const codeSchema = z.object({
@@ -21,6 +22,7 @@ export default function CoachInvitationPage() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { data: team } = useTeam(teamSlug || '');
 
     const [step, setStep] = useState<1 | 2>(1);
     const [teamInfo, setTeamInfo] = useState<{ id: string; name: string } | null>(null);
@@ -143,8 +145,8 @@ export default function CoachInvitationPage() {
                     <div className="space-y-4">
                         <div className="space-y-1">
                             <p className="text-lg font-bold text-slate-500">教練團隊邀請</p>
-                            <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter leading-tight px-4 transition-all">
-                                {teamInfo?.name || teamSlug}
+                            <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter leading-tight px-4 transition-all uppercase">
+                                {team?.name || teamSlug}
                             </h1>
                         </div>
 

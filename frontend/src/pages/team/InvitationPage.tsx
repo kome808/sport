@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { usePlayerLogin, usePlayerSession } from '@/hooks/usePlayer';
+import { useTeam } from '@/hooks/useTeam';
 
 
 // Step 1: 通行碼驗證
@@ -41,6 +42,7 @@ type PlayerFormData = z.infer<typeof playerSchema>;
 export default function InvitationPage() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
     const navigate = useNavigate();
+    const { data: team } = useTeam(teamSlug || '');
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [teamInfo, setTeamInfo] = useState<{ id: string; name: string } | null>(null);
     const [availablePlayers, setAvailablePlayers] = useState<any[]>([]);
@@ -193,11 +195,9 @@ export default function InvitationPage() {
                     <div className="space-y-4">
                         <div className="space-y-1">
                             <p className="text-lg font-bold text-slate-500">加入運動隊伍</p>
-                            {teamInfo && (
-                                <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tighter leading-tight px-4 transition-all">
-                                    {teamInfo.name}
-                                </h1>
-                            )}
+                            <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter leading-tight px-4 transition-all uppercase">
+                                {team?.name || teamSlug}
+                            </h1>
                         </div>
 
                         <div className="flex items-center justify-center gap-2">
@@ -217,18 +217,23 @@ export default function InvitationPage() {
                     {step === 1 && (
                         <form onSubmit={handleCodeSubmit(onCodeSubmit)} className="space-y-4">
                             <div className="space-y-2">
-                                <Label>請輸入球隊通行碼</Label>
+                                <Label className="font-bold text-slate-700">請輸入球隊邀請通行碼</Label>
                                 <Input
                                     {...registerCode('code')}
                                     placeholder="由教練提供的 4 位數代碼"
-                                    className="text-center text-lg tracking-widest"
+                                    className="text-center text-xl tracking-widest h-14 rounded-xl border-slate-200 focus:border-primary focus:ring-primary"
                                     disabled={isInvitationDisabled}
+                                    autoFocus
                                 />
                                 {codeErrors.code && <p className="text-sm text-destructive font-bold">{codeErrors.code.message}</p>}
                             </div>
-                            <Button type="submit" className="w-full" disabled={isInvitationDisabled}>
+                            <Button
+                                type="submit"
+                                className="w-full h-14 rounded-xl text-lg font-bold shadow-lg shadow-primary/20"
+                                disabled={isInvitationDisabled}
+                            >
                                 {isInvitationDisabled ? '停止招募' : (
-                                    <>下一步 <ArrowRight className="ml-2 h-4 w-4" /></>
+                                    <>下一步 <ArrowRight className="ml-2 h-5 w-5" /></>
                                 )}
                             </Button>
                         </form>
