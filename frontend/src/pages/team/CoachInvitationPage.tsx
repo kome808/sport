@@ -144,7 +144,7 @@ export default function CoachInvitationPage() {
                 <CardHeader className="text-center pb-8 pt-12">
                     <div className="space-y-4">
                         <div className="space-y-1">
-                            <p className="text-lg font-bold text-slate-500">教練團隊邀請</p>
+                            <p className="text-lg font-bold text-slate-500">邀請加入教練團</p>
                             <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter leading-tight px-4 transition-all uppercase">
                                 {team?.name || teamSlug}
                             </h1>
