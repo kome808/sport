@@ -279,7 +279,9 @@ export default function PlayerReportPage() {
                 });
             }
 
-            // Success -> Navigate
+            // Success -> Navigate and reset state
+            // Reset selectedDate to today to prevent showing yesterday's data on next visit
+            setSelectedDate(today);
             navigate(`/${teamSlug}/p/${playerId}/dashboard`);
         } catch (error: any) {
             console.error('Submit failed:', error);

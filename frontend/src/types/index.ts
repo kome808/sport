@@ -78,6 +78,8 @@ export interface DailyRecord {
     updated_at: string;
 }
 
+export type DailyRecordInput = Partial<Omit<DailyRecord, 'created_at' | 'updated_at'>>;
+
 // 疼痛回報
 export interface PainReport {
     id: string;
@@ -92,6 +94,8 @@ export interface PainReport {
     created_at: string;
     updated_at: string;
 }
+
+export type PainReportInput = Partial<Omit<PainReport, 'id' | 'created_at' | 'updated_at'>> & { is_resolved?: boolean };
 
 // 醫療紀錄
 export interface MedicalRecord {

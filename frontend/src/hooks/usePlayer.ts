@@ -5,8 +5,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { supabase, SCHEMA_NAME } from '@/lib/supabase';
-import type { Player, DailyRecord } from '@/types';
+import type { Player, DailyRecord, DailyRecordInput, PainReportInput } from '@/types';
 
 // ================================================
 // 型別定義
@@ -197,7 +198,7 @@ export function useUpdatePlayerProfile() {
 
 
 export function usePlayerTodayRecord(playerId: string | undefined) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = format(new Date(), 'yyyy-MM-dd');
 
     return useQuery({
         queryKey: ['playerRecord', playerId, today],
@@ -222,7 +223,7 @@ export function usePlayerTodayRecord(playerId: string | undefined) {
 // ... (existing usePlayerTodayRecord)
 
 export function usePlayerRecordByDate(playerId: string | undefined, date: Date) {
-    const dateStr = date ? date.toISOString().split('T')[0] : null;
+    const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
 
     return useQuery({
         queryKey: ['playerRecord', playerId, dateStr],
@@ -263,8 +264,8 @@ export function usePlayerRecords(
     { days, from, to }: DateRangeParams = { days: 7 }
 ) {
     // 產生查詢 key (確保 dates 改變時 key 也改變)
-    const startDateStr = from ? from.toISOString().split('T')[0] : null;
-    const endDateStr = to ? to.toISOString().split('T')[0] : null;
+    const startDateStr = from ? format(from, 'yyyy-MM-dd') : null;
+    const endDateStr = to ? format(to, 'yyyy-MM-dd') : null;
 
     return useQuery({
         queryKey: ['playerRecords', playerId, days, startDateStr, endDateStr],
@@ -282,13 +283,13 @@ export function usePlayerRecords(
             if (from && to) {
                 // 自訂範圍
                 query = query
-                    .gte('record_date', from.toISOString().split('T')[0])
-                    .lte('record_date', to.toISOString().split('T')[0]);
+                    .gte('record_date', format(from, 'yyyy-MM-dd'))
+                    .lte('record_date', format(to, 'yyyy-MM-dd'));
             } else if (days) {
                 // 固定天數 (預設)
                 const startDate = new Date();
                 startDate.setDate(startDate.getDate() - days);
-                const queryProto = startDate.toISOString().split('T')[0];
+                const queryProto = format(startDate, 'yyyy-MM-dd');
                 query = query.gte('record_date', queryProto);
             }
 
@@ -305,19 +306,6 @@ export function usePlayerRecords(
 // 提交每日紀錄 (Upsert)
 // ================================================
 
-interface DailyRecordInput {
-    player_id: string;
-    record_date: string;
-    rhr_bpm?: number;
-    sleep_quality: number;
-    fatigue_level: number;
-    mood: number;
-    stress_level: number;
-    muscle_soreness: number;
-    srpe_score?: number;
-    training_minutes?: number;
-    feedback?: string;
-}
 
 export function useSubmitDailyRecord() {
     const queryClient = useQueryClient();
@@ -339,6 +327,7 @@ export function useSubmitDailyRecord() {
         },
         onSuccess: (_, variables) => {
             // 更新快取
+            // 使用 invalidateQueries 預設的 exact: false，這樣可以匹配到 ['playerRecord', id, date] 的 key
             queryClient.invalidateQueries({
                 queryKey: ['playerRecord', variables.player_id],
             });
@@ -376,15 +365,6 @@ export function usePlayerPainReports(playerId: string | undefined) {
     });
 }
 
-interface PainReportInput {
-    player_id: string;
-    report_date: string;
-    body_part: string;
-    pain_level: number;
-    pain_type?: 'acute' | 'chronic' | 'fatigue';
-    description?: string;
-    is_resolved: boolean;
-}
 
 export function useSubmitPainReport() {
     const queryClient = useQueryClient();
