@@ -35,8 +35,56 @@ export default function PlayerPortalPage() {
 
                 <FatigueGuard playerId={playerId} date={date} />
 
+                <MissingDataAlert playerId={playerId} todayDate={date} />
+
                 <TrendChart playerId={playerId} />
             </div>
         </div>
     );
 }
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+
+function MissingDataAlert({ playerId, todayDate }: { playerId: string; todayDate: string }) {
+    // 查詢過去 7 天紀錄來檢查連續未填寫
+    const endDate = new Date(todayDate);
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - 7);
+
+    const { data: records } = usePlayerRecords(playerId, {
+        from: startDate,
+        to: endDate
+    });
+
+    if (!records) return null;
+
+    // 計算連續未填寫天數（不包含今天，因為今天可能還沒過完）
+    let consecutiveMissing = 0;
+    // 從昨天開始往回查
+    for (let i = 1; i <= 7; i++) {
+        const checkDate = new Date(endDate);
+        checkDate.setDate(endDate.getDate() - i);
+        const dateStr = format(checkDate, 'yyyy-MM-dd');
+
+        const hasRecord = records.some(r => r.record_date === dateStr && r.training_load_au !== null);
+
+        if (!hasRecord) {
+            consecutiveMissing++;
+        } else {
+            break; // 遇到有填寫的就停止
+        }
+    }
+
+    if (consecutiveMissing < 2) return null;
+
+    return (
+        <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="font-bold">填寫提醒</AlertTitle>
+            <AlertDescription className="text-xs font-medium mt-1">
+                您已經連續 <span className="font-black text-lg mx-1">{consecutiveMissing}</span> 天未填寫訓練紀錄。
+                <br />
+                請記得每日填寫以確保疲勞數據準確性！
+            </AlertDescription>
+        </Alert>
+    );
