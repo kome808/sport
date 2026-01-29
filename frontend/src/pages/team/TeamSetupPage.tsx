@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Upload, Check, AlertCircle } from 'lucide-react';
+import { Loader2, Upload, Check, AlertCircle, LogOut } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,7 +42,7 @@ type TeamSetupFormData = z.infer<typeof teamSetupSchema>;
 
 export default function TeamSetupPage() {
     const navigate = useNavigate();
-    const { coach, user, isLoading: authLoading, isAnonymous } = useAuth();
+    const { coach, user, isLoading: authLoading, isAnonymous, signOut } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -144,6 +144,15 @@ export default function TeamSetupPage() {
         }
     };
 
+    const handleLogout = async () => {
+        try {
+            await signOut();
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    };
+
     const onSubmit = async (data: TeamSetupFormData) => {
         if (slugError) return;
 
@@ -240,7 +249,7 @@ export default function TeamSetupPage() {
         <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-8">
             <div className="w-full" style={{ maxWidth: '32rem' }}>
                 <Card className="shadow-lg">
-                    <CardHeader className="text-center">
+                    <CardHeader className="text-center relative">
                         <CardTitle className="text-2xl font-bold">建立您的球隊</CardTitle>
                         <CardDescription>
                             設定球隊資訊，開始使用訓練管理系統
@@ -248,6 +257,26 @@ export default function TeamSetupPage() {
                     </CardHeader>
                     <form onSubmit={handleSubmit(onSubmit)}>
                         <CardContent className="space-y-6 py-4">
+                            {/* 當前登入帳號提示與登出 */}
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+                                <div className="text-center sm:text-left overflow-hidden w-full">
+                                    <p className="text-xs text-slate-500 font-medium mb-0.5">目前登入帳號</p>
+                                    <p className="text-sm font-bold text-slate-900 truncate" title={user?.email}>
+                                        {user?.email}
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleLogout}
+                                    className="shrink-0 text-slate-600 hover:text-slate-900 hover:bg-slate-200 border-slate-300 w-full sm:w-auto font-medium"
+                                >
+                                    <LogOut className="h-3.5 w-3.5 mr-2" />
+                                    切換帳號
+                                </Button>
+                            </div>
+
                             {/* 錯誤訊息 */}
                             {errorMessage && (
                                 <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
