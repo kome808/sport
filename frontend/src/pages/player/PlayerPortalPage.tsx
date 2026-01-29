@@ -42,6 +42,7 @@ export default function PlayerPortalPage() {
         </div>
     );
 }
+import { usePlayerRecords } from '@/hooks/usePlayer';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
