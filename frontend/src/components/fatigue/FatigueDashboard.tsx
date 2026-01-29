@@ -166,7 +166,7 @@ export default function FatigueDashboard({
                     value={metrics.srpe ? `${metrics.srpe.load_au}` : '-'}
                     status={metrics.srpe?.status || 'gray'}
                     description={
-                        metrics.srpe?.status === 'gray' || metrics.srpe?.pct_change === null
+                        (metrics.srpe?.status === 'gray' || metrics.srpe?.pct_change === null || metrics.srpe?.pct_change === undefined)
                             ? '尚無基準數據'
                             : `週變化率 ${metrics.srpe.pct_change > 0 ? '+' : ''}${metrics.srpe.pct_change}%`
                     }
