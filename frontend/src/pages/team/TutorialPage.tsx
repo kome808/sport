@@ -412,6 +412,21 @@ function FAQSection() {
                         </AccordionContent>
                     </AccordionItem>
 
+                    <AccordionItem value="feature-5" className="border rounded-2xl px-6 bg-white shadow-sm">
+                        <AccordionTrigger className="font-bold text-black hover:no-underline">
+                            如果沒有每天填寫會怎樣？
+                        </AccordionTrigger>
+                        <AccordionContent className="text-black font-medium space-y-2">
+                            <p>系統預設將「未填寫資料」的日期視為「休息日」(負荷為 0)。</p>
+                            <p className="text-red-500 font-bold">⚠️ 注意事項：</p>
+                            <ul className="list-disc pl-5">
+                                <li>如果您是有訓練卻忘記填寫，會導致慢性負荷被低估。</li>
+                                <li>當您下次補填時，急慢性負荷比 (ACWR) 可能會異常飆升，導致誤判為高風險。</li>
+                                <li>建議：若當天真的休息可留白；若有訓練請務必填寫，即使是估算值也好，以確保數據準確性。</li>
+                            </ul>
+                        </AccordionContent>
+                    </AccordionItem>
+
                     <AccordionItem value="feature-4" className="border rounded-2xl px-6 bg-white shadow-sm">
                         <AccordionTrigger className="font-bold text-black hover:no-underline">
                             如何邀請其他教練加入球隊？
