@@ -128,7 +128,7 @@ export function usePlayer(playerCode: string | undefined) {
             let query = supabase
                 .schema(SCHEMA_NAME)
                 .from('players')
-                .select('id, team_id, name, jersey_number, position, short_code, avatar_url, status, is_active, is_claimed, created_at, updated_at')
+                .select('id, team_id, name, jersey_number, position, short_code, avatar_url, status, is_active, is_claimed, height_cm, weight_kg, birth_date, created_at, updated_at')
                 .eq('is_active', true);
 
             if (isShortCode) {
@@ -168,9 +168,13 @@ export function useUpdatePlayerProfile() {
             });
 
             if (error) throw error;
-            return data;
+
+            // RPC returns SETOF (array), extract first item
+            return Array.isArray(data) ? data[0] : data;
         },
         onSuccess: (data) => {
+            if (!data) return;
+
             // 更新 Session 儲存
             const stored = localStorage.getItem(SESSION_KEY);
             if (stored) {

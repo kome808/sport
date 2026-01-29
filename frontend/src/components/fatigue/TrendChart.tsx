@@ -65,18 +65,26 @@ export function TrendChart({ playerId, days = 14 }: TrendChartProps) {
                 />
 
                 {/* 資料點 */}
-                {bars.map((bar: any) => (
-                    <circle
-                        key={bar.key}
-                        cx={xScale(bar.data.date) + xScale.bandwidth() / 2}
-                        cy={yScale(bar.data.ACWR)}
-                        r={4}
-                        fill="#FFFFFF"
-                        stroke="#F59E0B"
-                        strokeWidth={2}
-                        style={{ pointerEvents: 'none' }}
-                    />
-                ))}
+                {bars.map((bar: any) => {
+                    const x = xScale(bar.data.date) + xScale.bandwidth() / 2;
+                    const y = yScale(bar.data.ACWR);
+
+                    // Guard against NaN values before rendering
+                    if (isNaN(x) || isNaN(y)) return null;
+
+                    return (
+                        <circle
+                            key={bar.key}
+                            cx={x}
+                            cy={y}
+                            r={4}
+                            fill="#FFFFFF"
+                            stroke="#F59E0B"
+                            strokeWidth={2}
+                            style={{ pointerEvents: 'none' }}
+                        />
+                    );
+                })}
 
                 {/* 右側 Y 軸 (ACWR Axis) */}
                 <g transform={`translate(${innerWidth}, 0)`}>
@@ -195,7 +203,7 @@ export function TrendChart({ playerId, days = 14 }: TrendChartProps) {
                             LineLayer, // 疊加折線層
                         ]}
                         tooltip={CustomTooltip}
-                        animate={true}
+                        animate={false}
                     />
                 </div>
             </CardContent>

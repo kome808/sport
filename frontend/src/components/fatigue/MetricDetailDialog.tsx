@@ -27,13 +27,14 @@ export default function MetricDetailDialog({
             title: "急慢性訓練負荷比 ACWR",
             subtitle: "傷害風險的最大預測因子",
             meaning: "判斷訓練量是否突然增加（短期 vs 長期負荷比）",
-            how: "短期負荷(7天) ÷ 長期負荷(28天)",
+            how: "短期負荷(7天) ÷ 長期負荷(28天) (需累積 7 天數據)",
             ranges: [
                 { range: "0.80 - 1.30", status: "green", label: "安全 (Sweet Spot)", advice: "正常訓練" },
                 { range: "1.31 - 1.49", status: "yellow", label: "注意", advice: "監測 3 天，避免劇烈增量" },
                 { range: "1.50 - 1.99", status: "red", label: "高風險 (Danger Zone)", advice: "立即降量 30%，受傷風險增加 4.8 倍" },
                 { range: "≥ 2.0", status: "purple", label: "極高風險", advice: "受傷風險是平時的 5-7 倍，需嚴格監控" },
-                { range: "< 0.80", status: "yellow", label: "低負荷風險", advice: "負荷不足可能反而降低體能，增加未來受傷機率" }
+                { range: "< 0.80", status: "yellow", label: "低負荷風險", advice: "負荷不足可能反而降低體能，增加未來受傷機率" },
+                { range: "N/A", status: "gray", label: "尚無基準數據", advice: "需累積至少 7 天訓練數據才能計算" }
             ],
             science: "Williams et al. (2017): ACWR > 1.5 時，受傷風險顯著增加。"
         },
@@ -57,7 +58,8 @@ export default function MetricDetailDialog({
             ranges: [
                 { range: "± 4 bpm", status: "green", label: "正常", advice: "恢復充足" },
                 { range: "+ 5 bpm", status: "yellow", label: "高風險", advice: "訓練量降低 20%，可能是過度訓練前兆" },
-                { range: "≥ + 10 bpm", status: "red", label: "嚴重風險", advice: "強制休息，與過度訓練症候群或生病高度相關" }
+                { range: "≥ + 10 bpm", status: "red", label: "嚴重風險", advice: "強制休息，與過度訓練症候群或生病高度相關" },
+                { range: "N/A", status: "gray", label: "尚無基準數據", advice: "需累積至少 3 天數據建立基準線" }
             ],
             science: "Teo et al. (2016): RHR 的異常升高與過度訓練症候群 (OTS) 高度相關。"
         },
@@ -78,11 +80,12 @@ export default function MetricDetailDialog({
             title: "今日訓練負荷 sRPE",
             subtitle: "內部訓練負荷",
             meaning: "量化訓練總體壓力與週變化",
-            how: "RPE × 訓練時間 (計算週負荷變化率)",
+            how: "RPE × 訓練時間 (計算週負荷變化率) (需上週累積 3 天數據)",
             ranges: [
                 { range: "< 10%", status: "green", label: "穩定", advice: "負荷增加在安全範圍內" },
                 { range: "10% - 15%", status: "yellow", label: "偏高", advice: "增量稍快，需留意疲勞累積" },
-                { range: "> 15% 或 >1000AU", status: "red", label: "危險增量", advice: "負荷暴增，非接觸性受傷風險顯著提高" }
+                { range: "> 15% 或 >1000AU", status: "red", label: "危險增量", advice: "負荷暴增，非接觸性受傷風險顯著提高" },
+                { range: "N/A", status: "gray", label: "尚無基準數據", advice: "上週需累積至少 3 天數據才能計算變化率" }
             ],
             science: "Gabbett (2016): 週負荷增加超過 15% 會顯著增加受傷風險。"
         },

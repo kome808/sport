@@ -394,17 +394,19 @@ export default function DashboardPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        {(sortedFatigueData.filter(d =>
-                            d.metrics.acwr.risk_level === 'purple' ||
-                            d.metrics.acwr.risk_level === 'red' ||
-                            d.metrics.acwr.risk_level === 'black' ||
-                            d.metrics.rhr.status === 'red' ||
-                            d.metrics.rhr.status === 'black' ||
-                            d.metrics.wellness?.status === 'red' ||
-                            d.metrics.wellness?.status === 'black' ||
-                            d.metrics.srpe?.status === 'red' ||
-                            d.metrics.srpe?.status === 'black'
-                        ).length)}
+                        <div className="text-2xl font-bold text-danger">
+                            {(sortedFatigueData.filter(d =>
+                                d.metrics.acwr.risk_level === 'purple' ||
+                                d.metrics.acwr.risk_level === 'red' ||
+                                d.metrics.acwr.risk_level === 'black' ||
+                                d.metrics.rhr.status === 'red' ||
+                                d.metrics.rhr.status === 'black' ||
+                                d.metrics.wellness?.status === 'red' ||
+                                d.metrics.wellness?.status === 'black' ||
+                                d.metrics.srpe?.status === 'red' ||
+                                d.metrics.srpe?.status === 'black'
+                            ).length)}
+                        </div>
                         <p className="text-xs font-medium text-slate-600 mt-1">需要關注</p>
                     </CardContent>
                 </Card>
@@ -493,10 +495,10 @@ export default function DashboardPage() {
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-red-50/30 text-red-700 font-bold border-b border-red-100">
                                         <tr>
-                                            <th className="py-3 px-6">球員</th>
-                                            <th className="py-3 px-6">風險等級</th>
-                                            <th className="py-3 px-6">異常內容 (數值 / 指標)</th>
-                                            <th className="py-3 px-6">動作</th>
+                                            <th className="py-3 px-6 whitespace-nowrap min-w-[120px]">球員</th>
+                                            <th className="py-3 px-6 whitespace-nowrap min-w-[100px]">風險等級</th>
+                                            <th className="py-3 px-6 min-w-[200px]">異常內容 (數值 / 指標)</th>
+                                            <th className="py-3 px-6 whitespace-nowrap min-w-[80px]">動作</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-red-50">
@@ -530,12 +532,12 @@ export default function DashboardPage() {
 
                                                 return (
                                                     <tr key={item.player.id} className="hover:bg-red-50/20 transition-colors">
-                                                        <td className="py-3 px-6 font-bold text-black border-l-4 border-red-500">
+                                                        <td className="py-3 px-6 font-bold text-black border-l-4 border-red-500 whitespace-nowrap">
                                                             <Link to={`/${teamSlug}/player/${item.player.short_code || item.player.id}`} className="hover:text-primary hover:underline">
                                                                 {item.player.name}
                                                             </Link>
                                                         </td>
-                                                        <td className="py-3 px-6">
+                                                        <td className="py-3 px-6 whitespace-nowrap">
                                                             <Badge className={cn(
                                                                 "font-black uppercase tracking-tighter shadow-sm",
                                                                 highestRisk === 'black' ? "bg-slate-900 text-white" : "bg-red-500 text-white"
@@ -546,7 +548,7 @@ export default function DashboardPage() {
                                                         <td className="py-3 px-6">
                                                             <div className="flex flex-wrap gap-2">
                                                                 {details.map((d, idx) => (
-                                                                    <div key={idx} className="flex items-center gap-1.5 bg-white border border-red-100 rounded-lg px-2 py-1 shadow-sm">
+                                                                    <div key={idx} className="flex items-center gap-1.5 bg-white border border-red-100 rounded-lg px-2 py-1 shadow-sm whitespace-nowrap">
                                                                         <span className="text-xs font-black text-red-600">{d.name}</span>
                                                                         <span className="w-[1px] h-3 bg-red-100" />
                                                                         <span className="text-sm font-black text-black">{d.val}</span>
@@ -555,7 +557,7 @@ export default function DashboardPage() {
                                                                 ))}
                                                             </div>
                                                         </td>
-                                                        <td className="py-3 px-6">
+                                                        <td className="py-3 px-6 whitespace-nowrap">
                                                             <Button variant="ghost" size="sm" asChild className="h-8 rounded-xl font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-3">
                                                                 <Link to={`/${teamSlug}/player/${item.player.short_code || item.player.id}`}>
                                                                     細節
@@ -612,12 +614,12 @@ export default function DashboardPage() {
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                                     <tr>
-                                        <th className="py-3 px-6 w-32">報告日期</th>
-                                        <th className="py-3 px-6 w-32">球員姓名</th>
-                                        <th className="py-3 px-6 w-48">受傷部位/狀況</th>
-                                        <th className="py-3 px-6 w-32 whitespace-nowrap">疼痛指數</th>
-                                        <th className="py-3 px-6">說明</th>
-                                        <th className="py-3 px-6 w-48">醫囑</th>
+                                        <th className="py-3 px-6 min-w-[100px] whitespace-nowrap">報告日期</th>
+                                        <th className="py-3 px-6 min-w-[120px] whitespace-nowrap">球員姓名</th>
+                                        <th className="py-3 px-6 min-w-[160px]">受傷部位/狀況</th>
+                                        <th className="py-3 px-6 min-w-[100px] whitespace-nowrap">疼痛指數</th>
+                                        <th className="py-3 px-6 min-w-[200px]">說明</th>
+                                        <th className="py-3 px-6 min-w-[160px]">醫囑</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">

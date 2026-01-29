@@ -166,9 +166,9 @@ export default function FatigueDashboard({
                     value={metrics.srpe ? `${metrics.srpe.load_au}` : '-'}
                     status={metrics.srpe?.status || 'gray'}
                     description={
-                        metrics.srpe?.pct_change !== undefined
-                            ? `週變化率 ${metrics.srpe.pct_change > 0 ? '+' : ''}${metrics.srpe.pct_change}%`
-                            : '今日負荷 AU'
+                        metrics.srpe?.status === 'gray' || metrics.srpe?.pct_change === null
+                            ? '尚無基準數據'
+                            : `週變化率 ${metrics.srpe.pct_change > 0 ? '+' : ''}${metrics.srpe.pct_change}%`
                     }
                     icon={<TrendingUp className="h-4 w-4" />}
                     onInfoClick={() => handleMetricClick('srpe')}
@@ -204,10 +204,11 @@ export default function FatigueDashboard({
                     value={metrics.acwr.acwr ?? 'N/A'}
                     status={metrics.acwr.risk_level === 'purple' ? 'black' : metrics.acwr.risk_level === 'gray' ? 'gray' : metrics.acwr.risk_level}
                     description={
-                        metrics.acwr.risk_level === 'purple' ? '🟣 極高風險 (≥ 2.0)' :
-                            metrics.acwr.risk_level === 'red' ? '🔴 高風險區 (> 1.5)' :
-                                metrics.acwr.risk_level === 'yellow' ? '🟡 需注意 / 低負荷' :
-                                    '🟢 狀態穩定 (Sweet Spot)'
+                        metrics.acwr.risk_level === 'gray' || metrics.acwr.acwr === null ? '尚無基準數據' :
+                            metrics.acwr.risk_level === 'purple' ? '🟣 極高風險 (≥ 2.0)' :
+                                metrics.acwr.risk_level === 'red' ? '🔴 高風險區 (> 1.5)' :
+                                    metrics.acwr.risk_level === 'yellow' ? '🟡 需注意 / 低負荷' :
+                                        '🟢 狀態穩定 (Sweet Spot)'
                     }
                     icon={<Activity className="h-4 w-4" />}
                     onInfoClick={() => handleMetricClick('acwr')}
