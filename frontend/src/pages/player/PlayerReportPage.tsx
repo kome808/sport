@@ -173,9 +173,8 @@ export default function PlayerReportPage() {
                 setTrainingMinutes(m >= 15 ? '30' : '0');
             }
 
-            if (dailyRecord.srpe_score && dailyRecord.training_minutes) {
-                const intensity = Math.round(dailyRecord.srpe_score / dailyRecord.training_minutes);
-                setTrainingIntensity(intensity.toString());
+            if (dailyRecord.srpe_score) {
+                setTrainingIntensity(dailyRecord.srpe_score.toString());
             }
 
             if (dailyRecord.feedback) {
