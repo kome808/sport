@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { sendEvent, analyticsEvents } from '@/lib/analytics';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,7 @@ export default function RegisterPage() {
     const handleGoogleRegister = async () => {
         setIsLoading(true);
         setErrorMessage(null);
+        sendEvent(analyticsEvents.CLICK_REGISTER_START.name, analyticsEvents.CLICK_REGISTER_START.params('register_page_google'));
         const result = await signInWithGoogle();
         if (!result.success && result.error) {
             setErrorMessage(result.error.message || 'Google 註冊失敗');

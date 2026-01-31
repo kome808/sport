@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase, SCHEMA_NAME } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { sendEvent, analyticsEvents } from '@/lib/analytics';
 
 // 運動項目選項
 const sportTypes = [
@@ -226,6 +227,9 @@ export default function TeamSetupPage() {
             if (memberError) {
                 console.error('建立球隊成員失敗:', memberError);
             }
+
+            // Track team creation
+            sendEvent(analyticsEvents.COMPLETE_TEAM_CREATION.name, analyticsEvents.COMPLETE_TEAM_CREATION.params(newTeam.name));
 
             // 導向儀表板
             navigate(`/${data.slug}`);

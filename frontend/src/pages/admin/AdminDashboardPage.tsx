@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     LineChart, Line, Legend
 } from 'recharts';
 import {
-    Users, UserPlus, Zap, Database, AlertCircle, Loader2
+    Users, UserPlus, Zap, Database, AlertCircle, Loader2, ArrowRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { format } from 'date-fns';
 
 interface StatsData {
     kpi: {
@@ -26,8 +32,17 @@ interface StatsData {
     }[];
 }
 
+interface RecentTeam {
+    team_id: string;
+    name: string;
+    coach_email: string;
+    created_at: string;
+}
+
 export default function AdminDashboardPage() {
+    const navigate = useNavigate();
     const [data, setData] = useState<StatsData | null>(null);
+    const [recentTeams, setRecentTeams] = useState<RecentTeam[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -39,30 +54,32 @@ export default function AdminDashboardPage() {
         try {
             console.log('[AdminDashboard] Start fetching stats...');
             setLoading(true);
-            setError(null); // Clear previous error
+            setError(null);
 
-            const { data, error } = await supabase.rpc('get_admin_stats');
+            // 1. Fetch Stats
+            const statsPromise = supabase.rpc('get_admin_stats');
 
-            if (error) {
-                console.error('[AdminDashboard] RPC Error:', {
-                    code: error.code,
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint
-                });
-                throw error;
-            }
+            // 2. Fetch Recent Teams (using get_admin_teams and slicing locally)
+            // Note: In a real large scale app, we should create a get_recent_teams RPC
+            const teamsPromise = supabase.rpc('get_admin_teams');
 
-            console.log('[AdminDashboard] Fetch success');
-            setData(data as StatsData);
+            const [statsRes, teamsRes] = await Promise.all([statsPromise, teamsPromise]);
+
+            if (statsRes.error) throw statsRes.error;
+            if (teamsRes.error) throw teamsRes.error;
+
+            setData(statsRes.data as StatsData);
+
+            // Process teams to find top 5 recent
+            const allTeams = teamsRes.data as RecentTeam[];
+            const sorted = allTeams.sort((a, b) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            ).slice(0, 5);
+            setRecentTeams(sorted);
+
         } catch (err: any) {
-            console.error('[AdminDashboard] Critical Error fetching admin stats:', err);
-            // Handle specifically for 400 or RPC errors to avoid confusion
-            if (err.code === '42702' || err.code === '42804' || err.code === 'PGRST202') {
-                setError(`資料庫函數定義錯誤 (${err.code}): ${err.message}. 請執行最新的 SQL 遷移腳本。`);
-            } else {
-                setError(err.message || '無法載入統計數據');
-            }
+            console.error('[AdminDashboard] Error:', err);
+            setError(err.message || '無法載入儀表板數據');
         } finally {
             setLoading(false);
         }
@@ -157,6 +174,77 @@ export default function AdminDashboardPage() {
                 </Card>
             </div>
 
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                {/* Recent Teams List - NEW FEATURE */}
+                <Card className="col-span-4 shadow-sm">
+                    <CardHeader>
+                        <CardTitle>最新建立球隊</CardTitle>
+                        <CardDescription>
+                            顯示最近註冊的 5 支球隊與建立者
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>球隊名稱</TableHead>
+                                    <TableHead>建立者 (Email)</TableHead>
+                                    <TableHead className="text-right">建立日期</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {recentTeams.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center py-4 text-gray-500">
+                                            尚未有球隊
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    recentTeams.map((team) => (
+                                        <TableRow
+                                            key={team.team_id}
+                                            className="cursor-pointer hover:bg-muted/50 transition-colors group"
+                                            onClick={() => navigate(`/teams/${team.team_id}`)}
+                                        >
+                                            <TableCell className="font-medium group-hover:text-primary transition-colors flex items-center gap-2">
+                                                {team.name}
+                                                <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </TableCell>
+                                            <TableCell>{team.coach_email}</TableCell>
+                                            <TableCell className="text-right text-gray-500 text-sm">
+                                                {format(new Date(team.created_at), 'yyyy-MM-dd')}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+
+                {/* Quick Actions */}
+                <Card className="col-span-3 shadow-sm bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+                    <CardHeader>
+                        <CardTitle className="text-blue-900">管理員捷徑</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 grid-cols-2">
+                        <div
+                            className="p-4 bg-white rounded-lg shadow-sm border border-blue-100 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center justify-center text-center h-32"
+                            onClick={() => navigate('/teams')}
+                        >
+                            <Users className="h-8 w-8 text-blue-500 mb-2" />
+                            <span className="font-medium text-gray-900">管理球隊</span>
+                            <span className="text-xs text-gray-500 mt-1">檢視閒置名單</span>
+                        </div>
+                        <div className="p-4 bg-white rounded-lg shadow-sm border border-blue-100 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center justify-center text-center h-32 opacity-50">
+                            <Database className="h-8 w-8 text-indigo-500 mb-2" />
+                            <span className="font-medium text-gray-900">備份資料</span>
+                            <span className="text-xs text-gray-500 mt-1">即將開放</span>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
             {/* Charts */}
             <div className="grid gap-4 md:grid-cols-2">
                 {/* Growth Chart */}
@@ -227,56 +315,6 @@ export default function AdminDashboardPage() {
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-400">暫無數據</div>
                         )}
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                {/* Recent Errors / Logs (Mock for now) */}
-                <Card className="col-span-3 shadow-sm">
-                    <CardHeader>
-                        <CardTitle>最近系統日誌</CardTitle>
-                        <CardDescription>
-                            顯示最近 5 筆重要的系統警告或錯誤
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {/* Mock Data */}
-                            <div className="flex items-center">
-                                <div className="h-2 w-2 bg-green-500 rounded-full mr-2" />
-                                <div className="ml-2 space-y-1">
-                                    <p className="text-sm font-medium leading-none">Database Backup</p>
-                                    <p className="text-xs text-muted-foreground">Successful at 03:00 AM</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center">
-                                <div className="h-2 w-2 bg-yellow-500 rounded-full mr-2" />
-                                <div className="ml-2 space-y-1">
-                                    <p className="text-sm font-medium leading-none">High Latency Alert</p>
-                                    <p className="text-xs text-muted-foreground">api.sport.com/v1/records (500ms)</p>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Quick Actions */}
-                <Card className="col-span-4 shadow-sm bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
-                    <CardHeader>
-                        <CardTitle className="text-blue-900">管理員捷徑</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-4 grid-cols-2">
-                        <div className="p-4 bg-white rounded-lg shadow-sm border border-blue-100 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center justify-center text-center h-32">
-                            <Users className="h-8 w-8 text-blue-500 mb-2" />
-                            <span className="font-medium text-gray-900">管理球隊</span>
-                            <span className="text-xs text-gray-500 mt-1">檢視閒置名單</span>
-                        </div>
-                        <div className="p-4 bg-white rounded-lg shadow-sm border border-blue-100 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center justify-center text-center h-32 opacity-50">
-                            <Database className="h-8 w-8 text-indigo-500 mb-2" />
-                            <span className="font-medium text-gray-900">備份資料</span>
-                            <span className="text-xs text-gray-500 mt-1">即將開放</span>
-                        </div>
                     </CardContent>
                 </Card>
             </div>

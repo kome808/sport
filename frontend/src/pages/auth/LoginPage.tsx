@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { sendEvent, analyticsEvents } from '@/lib/analytics';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,7 @@ export default function LoginPage() {
     const handleGoogleLogin = async () => {
         setIsLoading(true);
         setErrorMessage(null);
+        sendEvent(analyticsEvents.LOGIN.name, analyticsEvents.LOGIN.params('google_click'));
         const result = await signInWithGoogle();
         if (!result.success && result.error) {
             setErrorMessage(result.error.message || 'Google 登入失敗');
@@ -82,6 +84,7 @@ export default function LoginPage() {
                                                 try {
                                                     const result = await (signInAnonymously as any)();
                                                     if (result.success) {
+                                                        sendEvent(analyticsEvents.LOGIN.name, analyticsEvents.LOGIN.params('anonymous'));
                                                         console.log('匿名登入成功，正在導向展示球隊...');
                                                         // 使用 window.location.href 進行硬導向，這是最穩健的跨驗證狀態跳轉方式
                                                         window.location.href = '/shohoku-basketball';
@@ -144,7 +147,11 @@ export default function LoginPage() {
                     <CardFooter className="flex flex-col gap-4 pb-10 pt-2">
                         <p className="text-sm text-center text-slate-500 font-medium">
                             還沒有教練帳號？{' '}
-                            <Link to="/register" className="text-primary hover:underline font-black">
+                            <Link
+                                to="/register"
+                                className="text-primary hover:underline font-black"
+                                onClick={() => sendEvent(analyticsEvents.CLICK_REGISTER_START.name, analyticsEvents.CLICK_REGISTER_START.params('login_page'))}
+                            >
                                 免費快速註冊
                             </Link>
                         </p>

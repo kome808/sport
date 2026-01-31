@@ -7,6 +7,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { sendEvent, analyticsEvents } from '@/lib/analytics';
 
 export function Header() {
     return (
@@ -51,6 +52,7 @@ export function Header() {
                             <Link to="/register">
                                 <Button
                                     className="bg-[#c1ff00] hover:bg-[#d4ff33] text-black font-black uppercase tracking-wide px-6"
+                                    onClick={() => sendEvent(analyticsEvents.CLICK_REGISTER_START.name, analyticsEvents.CLICK_REGISTER_START.params('header_desktop'))}
                                 >
                                     免費註冊
                                 </Button>
@@ -77,7 +79,11 @@ export function Header() {
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild className="focus:bg-zinc-800 focus:text-white cursor-pointer p-3">
-                                        <Link to="/register" className="w-full flex items-center justify-center font-bold text-[#c1ff00]">
+                                        <Link
+                                            to="/register"
+                                            className="w-full flex items-center justify-center font-bold text-[#c1ff00]"
+                                            onClick={() => sendEvent(analyticsEvents.CLICK_REGISTER_START.name, analyticsEvents.CLICK_REGISTER_START.params('header_mobile'))}
+                                        >
                                             免費註冊
                                         </Link>
                                     </DropdownMenuItem>

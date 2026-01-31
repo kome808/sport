@@ -32,6 +32,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminTeamManagementPage from './pages/admin/AdminTeamManagementPage';
+import AdminTeamPlayersPage from './pages/admin/AdminTeamPlayersPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 
 // 建立 React Query Client
@@ -83,6 +84,10 @@ const router = createBrowserRouter(
           {
             path: 'teams',
             element: <AdminTeamManagementPage />,
+          },
+          {
+            path: 'teams/:teamId',
+            element: <AdminTeamPlayersPage />,
           },
           {
             path: '*', // 內層捕捉

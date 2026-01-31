@@ -3,7 +3,7 @@
  * 顯示全隊訓練負荷概覽與高風險預警
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { format, addDays, subDays, isToday } from 'date-fns';
 import {
@@ -52,6 +52,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
+import { sendEvent, analyticsEvents } from '@/lib/analytics';
 
 // Body Part Map
 import { BODY_PATHS } from '@/components/player/BodyMapPaths';
@@ -85,9 +86,17 @@ BODY_PART_MAP['other'] = '其他部位';
 
 export default function DashboardPage() {
     const { teamSlug } = useParams<{ teamSlug: string }>();
-    const { isLoading: isAuthLoading, isInitialized, user } = useAuth();
+    const { isLoading: isAuthLoading, isInitialized, user, isAnonymous } = useAuth();
 
     const isReady = !isAuthLoading && isInitialized && !!user;
+
+    // Track View Dashboard
+    useEffect(() => {
+        if (isReady && teamSlug) {
+            const role = isAnonymous ? 'anonymous_coach' : 'coach';
+            sendEvent(analyticsEvents.VIEW_DASHBOARD.name, analyticsEvents.VIEW_DASHBOARD.params(role));
+        }
+    }, [isReady, teamSlug, isAnonymous]);
 
     // 取得球隊資料
     const { data: team, isLoading: teamLoading, error: teamError } = useTeam((isReady && teamSlug) ? teamSlug : '');

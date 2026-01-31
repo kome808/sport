@@ -35,6 +35,8 @@ const ILLNESS_MAP: Record<string, string> = {
     'other': '其他'
 };
 
+import { sendEvent, analyticsEvents } from '@/lib/analytics';
+
 export default function PlayerReportPage() {
     const { teamSlug, playerId } = useParams<{ teamSlug: string; playerId: string }>();
     const navigate = useNavigate();
@@ -272,6 +274,7 @@ export default function PlayerReportPage() {
 
             // Success -> Navigate and reset state
             // Reset selectedDate to today to prevent showing yesterday's data on next visit
+            sendEvent(analyticsEvents.RECORD_TRAINING.name, analyticsEvents.RECORD_TRAINING.params('daily_record'));
             setSelectedDate(today);
             navigate(`/${teamSlug}/p/${playerId}/dashboard`);
         } catch (error: any) {

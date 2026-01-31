@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { sendEvent, analyticsEvents } from '@/lib/analytics';
 
 export function CTA() {
     return (
@@ -46,6 +47,7 @@ export function CTA() {
                             <Button
                                 size="lg"
                                 className="w-full sm:w-auto bg-black hover:bg-zinc-800 text-[#c1ff00] font-black text-2xl px-16 py-10 uppercase tracking-widest shadow-[0_20px_50px_rgba(0,0,0,0.3)] group transition-all active:scale-95"
+                                onClick={() => sendEvent(analyticsEvents.CLICK_REGISTER_START.name, analyticsEvents.CLICK_REGISTER_START.params('landing_cta'))}
                             >
                                 立即建立隊伍
                                 <ArrowRight className="ml-4 w-8 h-8 group-hover:translate-x-3 transition-transform" />
