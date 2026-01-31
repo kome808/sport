@@ -74,3 +74,11 @@ export const BODY_PATHS: BodyPartPath[] = [
     { id: 'left_soleus_l', name: '左比目魚肌(左)', view: 'back', points: '28.5106383 195.744681 30.212766 195.744681 33.6170213 201.702128 30.6382979 220 28.5106383 213.617021 26.8085106 198.297872' },
     { id: 'right_soleus_r', name: '右比目魚肌(右)', view: 'back', points: '69.787234 195.744681 71.9148936 195.744681 73.6170213 198.297872 71.9148936 213.191489 70.212766 219.574468 67.2340426 202.12766' },
 ];
+
+export const BODY_PART_MAP = BODY_PATHS.reduce((acc, part) => {
+    acc[part.id] = part.name;
+    return acc;
+}, {} as Record<string, string>);
+
+// Add fallback for 'other'
+BODY_PART_MAP['other'] = '其他部位';

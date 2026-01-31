@@ -21,7 +21,7 @@ import { usePlayer, useSubmitDailyRecord, useSubmitPainReport, usePlayerRecordBy
 import BodyMapSelector from '@/components/player/BodyMapSelector';
 import MetricDetailDialog from '@/components/fatigue/MetricDetailDialog';
 import { type PainStatus } from '@/components/records/PainStatusDialog';
-import { BODY_PATHS } from '@/components/player/BodyMapPaths';
+import { BODY_PART_MAP } from '@/components/player/BodyMapPaths';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -34,14 +34,6 @@ const ILLNESS_MAP: Record<string, string> = {
     'headache': '頭痛',
     'other': '其他'
 };
-
-// Dynamically generate BODY_PART_MAP from BODY_PATHS
-const BODY_PART_MAP = BODY_PATHS.reduce((acc, part) => {
-    acc[part.id] = part.name;
-    return acc;
-}, {} as Record<string, string>);
-// Add fallback for 'other'
-BODY_PART_MAP['other'] = '其他部位';
 
 export default function PlayerReportPage() {
     const { teamSlug, playerId } = useParams<{ teamSlug: string; playerId: string }>();

@@ -116,6 +116,22 @@ export default function WellnessChart({ records }: WellnessChartProps) {
                         useMesh={true}
                         enableArea={true}
                         areaOpacity={0.1}
+                        tooltip={({ point }) => (
+                            <div className="bg-white px-3 py-2 border border-slate-100 shadow-lg rounded-lg text-xs min-w-[120px] whitespace-nowrap">
+                                <div className="text-slate-500 mb-1 font-medium text-center border-b border-slate-100 pb-1">
+                                    {point.data.x as string}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.seriesColor }} />
+                                    <span className="font-bold text-slate-700">
+                                        {point.seriesId}:
+                                    </span>
+                                    <span className="font-black text-slate-900 text-sm">
+                                        {point.data.yFormatted}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                         theme={{
                             axis: {
                                 ticks: {
